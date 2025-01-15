@@ -1,0 +1,8 @@
+**/.idea
+**/.vscode
+**/target
+**/*.log
+
+auto-login/chromedriver
+auto-login/chrome-win64
+auto-login/config.toml

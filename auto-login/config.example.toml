@@ -1,0 +1,20 @@
+connection_wait = 60
+
+[login]
+username = "..."
+password = "..."
+service = "_service_1"
+wait_seconds = 3
+eportal = "http://eportal.hhu.edu.cn" # 校园网登陆门户
+
+[[connection]]
+url = "http://www.msftncsi.com/ncsi.txt"
+value = "Microsoft NCSI"
+
+[webdriver]
+chrome_path = "chrome-win64"
+driver_path = "chromedriver.exe"
+
+# [[wlan]]
+# ssid = "Hohai University"
+# password = ""

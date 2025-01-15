@@ -1,0 +1,30 @@
+[package]
+name = "auto-login"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+strip = "symbols" 
+
+[dependencies]
+reqwest = { version = "0.12.8", default-features = false }
+serde = {version = "1.0.213", default-features = false, features = ["derive"] }
+toml = "0.8.19"
+tklog = "0.2.4"
+tokio = { version = "1.41.0", features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util = "0.7.13"
+thirtyfour = "0.34.0"
+
+notify-rust = "4.11.3"
+ipmb = "0.7.14"
+windows-sys = {version = "0.59.0", features = [
+    "Win32_Networking_WinInet", 
+    "Win32_System_Threading", 
+    "Win32_Security"
+]}
+
+[build-dependencies]
+embed-resource = "2.3"
+embed-manifest = "1.4.0"
