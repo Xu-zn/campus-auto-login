@@ -3,6 +3,11 @@
 **/target
 **/*.log
 
-auto-login/chromedriver
-auto-login/chrome-win64
-auto-login/config.toml
+chromedriver
+chrome-win64
+config.toml
+
+
+# Added by cargo
+
+target/

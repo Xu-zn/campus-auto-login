@@ -1,0 +1,33 @@
+struct LoginInfo {
+    username: string,
+    password: string,
+    ervice: string,
+    wait_seconds: int,
+    eportal: string}
+
+struct ConnectionState {
+    url: string,
+    value: string,
+}
+
+struct WebDriverInfo {
+    chrome_path: string,
+    driver_path: string,
+}
+
+struct ConfigFile {
+    login: LoginInfo,
+    connection: [ConnectionState],
+    connection_wait: int,
+    webdriver: WebDriverInfo,
+}
+
+
+export component SettingPage inherits Rectangle {
+    width: 100%;
+    height: 100%;
+
+    Text {
+        text: "系统设置";
+    }
+}

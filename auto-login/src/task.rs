@@ -1,106 +1,97 @@
-use reqwest::Client;
-use std::{
-    env::current_dir, time::Duration
-};
-use tokio_util::sync::CancellationToken;
-use tklog::{error, info, warn};
-use tokio::{
-    task::JoinHandle,
-    process::Command,
-};
 use crate::{
-    config::ConfigFile,
-    net::{
-        check::check_connection, 
-        login::{to_login, ChromeDriverConfig}
+    constants::GLOBAL_NET_STATUS,
+    dtypes::{ConfigFile, NetStatus},
+    networking::{
+        check::check_connection,
+        login::{to_login, ChromeDriverConfig},
     },
 };
+use reqwest::Client;
+use std::{env::current_dir, time::Duration};
+use thirtyfour::{ChromiumLikeCapabilities, DesiredCapabilities, WebDriver};
+use tklog::{error, info, warn};
+use tokio::{process::Command, task::JoinHandle, time::interval};
+use tokio_util::sync::CancellationToken;
 
-use thirtyfour::{ ChromiumLikeCapabilities, DesiredCapabilities, WebDriver };
+const SERVICE_NAME: &str = "campus.auto-login";
+const LABEL_NAME: &str = "serve";
 
-pub fn task_netcheck(config: ConfigFile, cancel_token: CancellationToken) -> JoinHandle<()> {
-    let mut netcheck_interval = tokio::time::interval(Duration::from_secs(config.connection_wait));
-    let netcheck = tokio::spawn(
-        async move {
-            let client = Client::new();
-            loop {
-                tokio::select! {
-                    _ = cancel_token.cancelled() => {
-                        info!("停止网络检测");
-                        break;
-                    },
-                    _ = netcheck_interval.tick() => {
-                        let connected = check_connection(&config.connection, &client).await;
-                        if connected.is_err() {
-    
-                            net_connect(&config).await;
-                        }
-                        else {
-                            info!("网络已连接");
+/// 循环检测网络连通性
+pub fn task_net_check(config: ConfigFile, cancel_token: CancellationToken) -> JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut check_interval = interval(Duration::from_secs(config.connection_wait));
+        let client = Client::new();
+
+        let mut last_status = NetStatus::Disconnected;
+
+        loop {
+            tokio::select! {
+                // 优先处理取消信号
+                _ = cancel_token.cancelled() => {
+                    info!("停止网络检测");
+                    return;
+                }
+                // 定时检查网络状态
+                _ = check_interval.tick() => {
+                    let cur_status = check_connection(&config.connection, &client).await;
+                    match cur_status {
+                        NetStatus::Connecting => info!("网络已连接"),
+                        NetStatus::Restricted => warn!("受限网络"),
+                        NetStatus::Disconnected => net_connect(&config).await,
+                    }
+                    if cur_status != last_status {
+                        last_status = cur_status;
+                        {
+                            let mut write_guard = GLOBAL_NET_STATUS.write().unwrap();
+                            *write_guard = NetStatus::Connecting;
                         }
                     }
+
                 }
+
             }
-            
         }
-    );
-
-    netcheck
+    })
 }
-
 
 pub fn task_stop() -> JoinHandle<()> {
     tokio::spawn(async {
-        let options = ipmb::Options::new(
-            "campus.auto-login", ipmb::label!("serve"), ""
-        );
-        let (sender, mut receiver) = match ipmb::join::<bool, String>(
-            options, None
-        ){
+        let options = ipmb::Options::new(SERVICE_NAME, ipmb::label!(LABEL_NAME), "");
+        let (_, mut receiver) = match ipmb::join::<(), String>(options, None) {
             Ok(t) => t,
             Err(_) => {
-                error!("这里的问题就好像你要给心上人打个电话，然后信号连接的基站坏了");
+                error!("ipmb连接失败");
                 return;
             }
         };
-    
+
         while let Ok(message) = receiver.recv(None) {
             match message.payload.as_str() {
-                "live" => {
-                    let selector = ipmb::Selector::unicast("manager");
-                    let sender_message = ipmb::Message::new(selector, true);
-                    sender.send(sender_message).unwrap_or_else(|_| {
-                        warn!("给前任发了个消息，但对方死了，消息发送不过去了");
-                    });
-    
-                },
                 "exit" => {
                     break;
-                },
-                _ => {
-                    warn!("收到了垃圾短信，也只能无视它罢了");
                 }
+                _ => { /*不想响应来历不明的信号*/ }
             }
-        };
-
+        }
     })
-    
 }
-
 
 async fn net_connect(config: &ConfigFile) {
     let driver_info = &config.webdriver;
 
-    let chrome_path = current_dir().unwrap().join(&driver_info.chrome_path).join("chrome.exe");
+    let chrome_path = current_dir()
+        .unwrap()
+        .join(&driver_info.chrome_path)
+        .join("chrome.exe");
     if !chrome_path.exists() {
-        error!("chrome文件不存在，总不能要求我做一个浏览器出来");
+        error!("未检测到chrome");
         return;
     }
     let chrome_path = chrome_path.as_os_str().to_str().unwrap();
 
     let driver_path = current_dir().unwrap().join(&driver_info.driver_path);
     if !driver_path.exists() {
-        error!("driver文件不存在，就像给你一碗饭但不给筷子一样");
+        error!("未检测到chromedriver");
         return;
     }
     let driver_path = driver_path.as_os_str().to_str().unwrap();
@@ -114,7 +105,7 @@ async fn net_connect(config: &ConfigFile) {
 
     let driver_start = driver_command.spawn();
     if driver_start.is_err() {
-        error!("启动chromedriver失败，总有刁民想害朕");
+        error!("启动chromedriver失败");
         return;
     } else {
         info!("启动chromedriver成功");
@@ -130,7 +121,7 @@ async fn net_connect(config: &ConfigFile) {
 
     let driver_client = WebDriver::new(&driver_url, chrome_capabilities).await;
     if let Err(_) = driver_client {
-        error!("连接WebDriver失败，筷子断了");
+        error!("连接WebDriver失败");
         return;
     }
 
@@ -139,9 +130,8 @@ async fn net_connect(config: &ConfigFile) {
     if login_result.is_ok() {
         info!("登录成功");
     } else {
-        error!("总会出现一些莫名其妙的问题，例如：\n{}", login_result.err().unwrap());
+        error!("登录出现意外：\n", login_result.unwrap_err());
     }
-
     driver.quit().await.unwrap();
     drop(driver_command);
 }

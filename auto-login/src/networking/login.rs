@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use thirtyfour::{By, WebDriver, extensions::query::ElementQueryable};
-use crate::config::{LoginInfo, ResultAsync};
-use crate::sleep_millisecs;
+use tklog::warn;
+use crate::constants::PORTAL;
+use crate::utils::dtypes::{LoginInfo, ResultAsync};
+use crate::sleep_millisecond;
 
 /// ChromeDriver
 #[derive(Serialize, Deserialize)]
@@ -10,14 +12,14 @@ pub struct ChromeDriverConfig {
     /// 使用端口
     pub port: u16,
     /// 记录日志
-    pub slient: bool,   
+    pub silent: bool,
 }
 
 impl ChromeDriverConfig {
     pub fn default() -> Self {
         Self {
             port: 18888,
-            slient: true,
+            silent: true,
         }
     }
 
@@ -25,8 +27,8 @@ impl ChromeDriverConfig {
         self.port = driver_port
     }
 
-    pub fn set_slient(self: &mut Self, driver_slient: bool) {
-        self.slient = driver_slient
+    pub fn set_silent(self: &mut Self, driver_silent: bool) {
+        self.silent = driver_silent
     }
 
     pub fn get_driver_url(self: &Self) -> String {
@@ -36,8 +38,8 @@ impl ChromeDriverConfig {
     pub fn to_args(self: &Self) -> Vec<String> {
         let mut arg: Vec<String> = Vec::new();
         arg.push(format!("--port={}", self.port));
-        if self.slient {
-            arg.push("--slient".into());
+        if self.silent {
+            arg.push("--silent".into());
         }
         arg
     }
@@ -48,7 +50,7 @@ impl ChromeDriverConfig {
 pub async fn to_login(login_info: &LoginInfo, driver: &mut WebDriver) -> Result<(), ResultAsync> {
     
     // 打开登陆页面
-    let open_url = driver.goto(&login_info.eportal).await;
+    let open_url = driver.goto(PORTAL).await;
 
     // 打开页面失败时
     if let Err(e) = open_url {
@@ -74,14 +76,15 @@ pub async fn to_login(login_info: &LoginInfo, driver: &mut WebDriver) -> Result<
                                    .wait(Duration::from_secs(10), Duration::from_millis(500)).first().await;
     // 超时返回Error
     if login_button.is_err() {
-        return Err("登录页面加载超时".into())
+        warn!("登陆页面加载超时，默认为已登录");
+        return Ok(())
     }
 
     let login_button = login_button.unwrap();
 
     // 用户名
     let input_username = driver.find(By::Id("username")).await;
-    sleep_millisecs(200).await;
+    sleep_millisecond(200).await;
     match input_username {
         Ok(el) => {
             el.click().await?;
@@ -97,9 +100,9 @@ pub async fn to_login(login_info: &LoginInfo, driver: &mut WebDriver) -> Result<
     let input_password = driver.find(By::Id("pwd")).await;
     match input_password {
         Ok(el) => {
-            sleep_millisecs(200).await;
+            sleep_millisecond(200).await;
             driver.query(By::Id("pwd_tip")).first().await?.click().await?;
-            sleep_millisecs(200).await;
+            sleep_millisecond(200).await;
             el.send_keys(&login_info.password).await?;
         },
         Err(e) => {
@@ -116,7 +119,7 @@ pub async fn to_login(login_info: &LoginInfo, driver: &mut WebDriver) -> Result<
             el.click().await?;
             println!("start find service");
             // 选择服务
-            let selector = format!("{}", &login_info.service);
+            let selector = login_info.service.to_service_string();
             driver.find(By::Id(&selector)).await?.click().await?;
         },
         Err(e) => {
