@@ -830,6 +830,10 @@ dependencies = [
 [[package]]
 name = "campus-auto-login"
 version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "tokio",
+]
 
 [[package]]
 name = "cc"

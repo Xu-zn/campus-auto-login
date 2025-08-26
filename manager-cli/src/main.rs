@@ -54,7 +54,7 @@ async fn main() {
                 if target_dir.exists() {
                     println!("配置文件已存在");
                 } else {
-                    ConfigFile::create_default_config(&target_dir).unwrap();
+                    ConfigFile::create_default_config(&current_dir).unwrap();
                 }
             } else if args.validate {
                 // 调用验证配置文件的函数

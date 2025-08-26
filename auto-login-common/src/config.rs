@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::{path::Path, fs::{write, read_to_string, create_dir_all}};
 use anyhow::Result;
+// use 
+
 /// 网络服务类型
 #[derive(Deserialize, Serialize)]
 pub enum NetServiceType {
@@ -61,7 +63,7 @@ impl LoginConfig {
     fn default() -> Self {
         Self {
             eportal: String::from("http://eportal.hhu.edu.cn"),
-            timout: 15
+            timout: 3
         }
     }
 }
@@ -128,11 +130,28 @@ pub struct ChromeConfig {
 
 impl ChromeConfig {
     pub fn default() -> Self {
-        Self {
+        let os = std::env::consts::OS;
+        let arch = std::env::consts::ARCH;
+
+        let platform = match (os, arch) {
+            ("windows", "x86") => "win32",
+            ("windows", "x86_64") => "win64",
+            ("linux", "x86_64") => "linux64",
+            _ => panic!("Unsupported platform: {}-{}", os, arch),
+        };
+
+        #[cfg(windows)]
+        return Self {
             port: 18888,
-            driver_path: String::from(""),
-            browser_path: String::from(""),
-        }
+            driver_path: format!("chromedriver-{}/chromedriver.exe", platform),
+            browser_path: format!("chrome-{}/chrome.exe", platform),
+        };
+        #[cfg(not(windows))]
+        return Self {
+            port: 18888,
+            driver_path: format!("chromedriver-{}/chromedriver", platform),
+            browser_path: format!("chrome-{}/chrome", platform),
+        };
     }
 }
 

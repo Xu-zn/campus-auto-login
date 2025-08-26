@@ -1,4 +1,5 @@
 use std::time::Duration;
+use reqwest::Client;
 use tklog::{error, info, warn};
 use tokio::{task::JoinHandle, time::interval};
 use tokio_util::sync::CancellationToken;
@@ -14,6 +15,7 @@ const LABEL_NAME: &str = "serve";
 /// 循环检测网络连通性
 pub fn task_detection(cancel_token: CancellationToken) -> JoinHandle<()> {
     let query = &CONFIG.get().unwrap().query;
+    let client = Client::new();
     tokio::spawn(async move {
         let mut detect_interval = interval(Duration::from_secs(query.interval));
         loop {
@@ -25,7 +27,7 @@ pub fn task_detection(cancel_token: CancellationToken) -> JoinHandle<()> {
                 }
                 // 定时检查网络状态
                 _ = detect_interval.tick() => {
-                    let cur_status = detect_network_status(query).unwrap();
+                    let cur_status = detect_network_status(query, &client).await.unwrap();
                     println!("{}", cur_status.display());
                     match cur_status {
                         NetStatus::Connected => info!("网络已连接"),

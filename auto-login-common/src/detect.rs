@@ -16,7 +16,7 @@ pub async fn detect_network_status(query: &QueryConfig, client: &Client) -> Resu
                 let text = resp.text().await;
                 if text.is_ok() {
                     let text = text.unwrap();
-                    if text == conn.val {
+                    if text.contains(&conn.val) {
                         return Ok(NetStatus::Connected);
                     }
                 }
