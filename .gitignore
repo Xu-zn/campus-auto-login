@@ -3,8 +3,8 @@
 **/target
 **/*.log
 
-chromedriver
-chrome-win64
+chrome*/
+chromedriver*/
 config.toml
 
 

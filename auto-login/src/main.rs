@@ -1,15 +1,16 @@
 // #![cfg(not(debug_assertions))]
 #![windows_subsystem = "windows"]
 
-use std::{path::Path, fs::OpenOptions};
+use std::{env::current_dir, fs::OpenOptions, path::Path};
 use tklog::{info, error, Format, LEVEL, LOG, MODE};
 use tokio_util::sync::CancellationToken;
 use fs4::fs_std::FileExt;
 
 use auto_login::{
-    task::{task_net_check, task_stop},
+    task::{task_detection, task_stop},
 };
-use auto_login::dtypes::ConfigFile;
+use auto_login_common::config::ConfigFile;
+use auto_login::CONFIG;
 
 #[tokio::main]
 async fn main() {
@@ -37,8 +38,12 @@ async fn main() {
         .set_cutmode_by_time("neco.log", MODE::DAY, 7, false)
         .set_formatter("{level} {time}: {message}\n");
 
-    let config = match ConfigFile::load_config() {
-        Ok(t) => t,
+    let config_path = current_dir().unwrap().join("config.toml");
+    info!("配置文件路径: {}", config_path.display());
+    match ConfigFile::load_config(&config_path) {
+        Ok(conf) => {
+            let _ = CONFIG.set(conf);
+        },
         Err(_) => {
             return;
         }
@@ -50,7 +55,7 @@ async fn main() {
 
     info!("AutoLogin开始运行");
 
-    let net_check = task_net_check(config.clone(), cancel_token_for_network_check);
+    let net_check = task_detection(cancel_token_for_network_check);
 
     // 启动一个异步任务来监听停止信号
     let stop_signal_task = task_stop();

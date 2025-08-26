@@ -1,15 +1,15 @@
-connection_wait = 60
+[login.config]
+eportal = "http://eportal.hhu.edu.cn"
+interval = 3 # 等待页面加载时间(s)
 
-[login]
+[login.info]
 username = "填写学号"
 password = "信息门户密码"
-service = "校园网、南京移动、常州电信、常州联通"
-wait_seconds = 3
+service = "校园网|南京移动|常州电信|常州联通"
 
-[[connection]]
-url = "http://www.msftncsi.com/ncsi.txt"
-value = "Microsoft NCSI"
-
-[webdriver]
-chrome_path = "chrome-win64"
-driver_path = "chromedriver.exe"
+[query]
+interval = 15 # 查询时间间隔(s)
+urls = [
+    "https://randd.icu",
+    # "8.8.8.8:53",
+]

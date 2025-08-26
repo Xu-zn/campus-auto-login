@@ -1,0 +1,11 @@
+[package]
+name = "auto-login-common"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = {workspace = true}
+toml = {version = "0.9.5"}
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["net", "time"]}
+reqwest ={ workspace = true}

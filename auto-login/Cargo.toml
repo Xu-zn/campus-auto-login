@@ -1,12 +1,12 @@
 [package]
 name = "auto-login"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 
 [dependencies]
-reqwest = { version = "^0.12", default-features = false }
-serde = {version = "^1.0", default-features = false, features = ["derive"] }
+reqwest = { workspace = true}
+serde = {workspace = true}
 tklog = "^0.2"
 thirtyfour = "^0.36.1"
 
@@ -15,6 +15,10 @@ tokio = {workspace = true}
 tokio-util = {workspace = true}
 ipmb = {workspace = true}
 fs4 = {workspace = true}
+anyhow ={ workspace = true}
+
+auto-login-common = {path = "../auto-login-common"}
+
 
 [build-dependencies]
 embed-resource = {workspace = true}

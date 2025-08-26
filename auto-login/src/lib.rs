@@ -1,7 +1,8 @@
-pub mod networking;
-pub mod task;
-pub mod utils;
-pub use utils::{
-    config, constants, dtypes,
-    utils::{sleep_millisecond, sleep_secs},
-};
+mod utils;
+pub use utils::*;
+
+use auto_login_common::config::ConfigFile;
+
+use std::sync::OnceLock;
+
+pub static CONFIG: OnceLock<ConfigFile> = OnceLock::new();

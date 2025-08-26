@@ -1,0 +1,17 @@
+[package]
+name = "manager-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = {workspace = true, features = ["json", "rustls-tls", "stream"]}
+serde = {workspace = true}
+serde_json = {version = "*"}
+clap = {version = "*", features = ["derive"]}
+zip = { version = "4.5" }
+tokio = { workspace = true }
+indicatif = { version = "0.18.0", features = ["tokio"]}
+anyhow = { workspace = true}
+futures-util = "0.3.31"
+
+auto-login-common = { path = "../auto-login-common" }

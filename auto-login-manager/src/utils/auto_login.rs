@@ -16,7 +16,11 @@ pub fn stop_auto_login() {
 }
 
 pub fn start_auto_login() {
+    #[cfg(windows)]
     let _cmd = Command::new("auto-login.exe")
         .creation_flags(0x08000000)
+        .spawn();
+    #[cfg(not(windows))]
+    let _cmd = Command::new("auto-login")
         .spawn();
  }
