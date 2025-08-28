@@ -1,0 +1,34 @@
+[package]
+name = "campus-auto-login"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+
+
+[dependencies]
+
+reqwest ={ workspace = true}
+tokio = { workspace = true }
+
+[workspace]
+members = [
+    "auto-login",
+    "auto-login-common",
+    "manager-gui",
+    "manager-cli",
+]
+
+[workspace.dependencies]
+toml = "^0.9"
+tokio = { version = "^1.41", features = ["rt-multi-thread", "macros", "signal", "process"] }
+tokio-util = "^0.7.13"
+fs4 = { version = "0.13", features = ["sync"] }
+embed-resource = "3.0.5"
+embed-manifest = "1.4.0"
+serde = {version = "^1.0", default-features = false, features = ["derive"] }
+anyhow = "1.0.99"
+reqwest = {version = "^0.12", default-features = false, features = ["rustls-tls"]}
+ipmb = "0.8.3"

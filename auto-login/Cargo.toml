@@ -1,0 +1,24 @@
+[package]
+name = "auto-login"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+reqwest = { workspace = true}
+serde = {workspace = true}
+tklog = "^0.2"
+thirtyfour = "^0.36.1"
+
+toml = {workspace = true}
+tokio = {workspace = true}
+tokio-util = {workspace = true}
+fs4 = {workspace = true}
+anyhow = {workspace = true}
+auto-login-common = {path = "../auto-login-common"}
+[target.'cfg(windows)'.dependencies]
+ipmb = {workspace = true}
+
+[build-dependencies]
+embed-resource = {workspace = true}
+embed-manifest = {workspace = true}

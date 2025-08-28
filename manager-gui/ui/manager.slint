@@ -1,0 +1,224 @@
+import { Button, ScrollView } from "std-widgets.slint";
+import { SettingPage } from "./settings.slint";
+import { ConfigPage } from "./config.slint";
+
+
+
+component DivideLine inherits Path {
+   width: 100%;
+   height: 1px;
+   stroke: #999999;
+   stroke-width: 1px;
+   MoveTo {
+       x: 0;
+       y: 0;
+   }
+
+   LineTo {
+       x: 100%;
+       y: 0;
+   }
+}
+
+
+export component ManagerWindow inherits Window {
+    height: 540px;
+    width: 300px;
+    title: "Manager-GUI";
+    default-font-family: "HarmonyOS Sans SC";
+    icon: @image-url("../icons/neco.png");
+
+    in-out property <int> running-status: 0;
+    in-out property <bool> network-connective-status: false;
+
+    property <int> current-index: 0;
+
+    pure function button-text() -> string {
+        if (running-status == 1) {
+            return "停止";
+        }
+        return "开始";
+    }
+    pure function status-text() -> string {
+        if (running-status == 0) {
+            return "待检测";
+        }
+        if (running-status == 1) {
+            return "运行中";
+        }
+        if (running-status == 2) {
+            return "未运行";
+        }
+        return "";
+    }
+    pure function status-color() -> brush {
+        if (running-status == 1) {
+            return rgba(0, 192, 0, 1);
+        }
+        if (running-status == 2) {
+            return rgba(192, 0, 0, 1);
+        }
+        return rgba(192, 192, 192, 1);
+    }
+    
+    pure function activate-bgcolor(self-index: int) -> brush {
+        if (self-index == root.current-index) {
+            return rgba(255, 255, 255, 0.2);
+        }
+        return rgba(255, 255, 255, 0);
+    }
+    callback check-running-status(int);
+    callback update-running-status(int);
+
+    timer := Timer {
+        interval: 500ms;
+        running: true;
+        triggered() => {
+            check-running-status(running-status);
+        }
+    }
+
+    VerticalLayout {
+
+        GridLayout {
+            height: 3rem;
+            Row {
+                Rectangle {
+                    width: 50%;
+                }
+
+                Rectangle {
+                    background: activate-bgcolor(self-index);
+                    property <int> self-index: 0;
+                    property <bool> is-active: root.current-index == self-index;
+
+                    TouchArea {
+
+                        mouse-cursor: pointer;
+                        Path {
+                            width: 1.8rem;
+                            height: 3rem;
+                            fill: rgba(32, 192, 192, 1);
+                                                    commands: "M798.72 817.152c-57.344-10.24-102.4-59.392-102.4-120.832 0-67.584 55.296-122.88 122.88-122.88s122.88 55.296 122.88 122.88c0 61.44-45.056 110.592-102.4 120.832v114.688c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-114.688z m-614.4 0c-57.344-10.24-102.4-59.392-102.4-120.832 0-67.584 55.296-122.88 122.88-122.88s122.88 55.296 122.88 122.88c0 61.44-45.056 110.592-102.4 120.832v114.688c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-114.688z m307.2-610.304c-57.344 10.24-102.4 59.392-102.4 120.832 0 67.584 55.296 122.88 122.88 122.88s122.88-55.296 122.88-122.88c0-61.44-45.056-110.592-102.4-120.832v-114.688c0-12.288-8.192-20.48-20.48-20.48s-20.48 8.192-20.48 20.48v114.688z m-307.2-114.688c0-12.288 8.192-20.48 20.48-20.48s20.48 8.192 20.48 20.48v409.6c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-409.6z m614.4 0c0-12.288 8.192-20.48 20.48-20.48s20.48 8.192 20.48 20.48v409.6c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-409.6z m-286.72 317.44c-45.056 0-81.92-36.864-81.92-81.92s36.864-81.92 81.92-81.92 81.92 36.864 81.92 81.92-36.864 81.92-81.92 81.92z m-20.48 112.64c0-12.288 8.192-20.48 20.48-20.48s20.48 8.192 20.48 20.48v409.6c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-409.6z m-286.72 256c45.056 0 81.92-36.864 81.92-81.92s-36.864-81.92-81.92-81.92-81.92 36.864-81.92 81.92 36.864 81.92 81.92 81.92z m614.4 0c45.056 0 81.92-36.864 81.92-81.92s-36.864-81.92-81.92-81.92-81.92 36.864-81.92 81.92 36.864 81.92 81.92 81.92z";
+
+                        }
+                        clicked => {
+                            root.current-index = 0;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    background: activate-bgcolor(self-index);
+                    property <int> self-index: 1;
+                    property <bool> is-active: root.current-index == self-index;
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        Path {
+                            width: 1.8rem;
+                            height: 3rem;
+                            fill: rgba(32, 192, 192, 1);
+                            commands: "M594.466 454.588c0-37.137 23.484-68.813 56.252-81.374-7.646-30.584-19.66-59.529-35.499-86.29-32.222 14.2-70.997 8.193-97.212-18.022-26.214-26.214-32.221-64.99-18.022-97.211a363.318 363.318 0 0 0-86.289-35.499c-12.561 32.768-44.237 56.252-81.374 56.252-37.137 0-68.813-23.484-81.374-56.252-30.583 7.646-59.528 19.66-86.289 35.499 14.2 32.222 8.192 70.997-18.022 97.211s-64.99 32.222-97.212 18.023c-15.838 26.76-27.853 55.705-35.499 86.289 32.768 12.56 56.252 44.237 56.252 81.374 0 37.137-23.484 68.813-56.252 81.374 7.646 30.583 19.661 59.528 35.5 86.289 32.22-14.2 70.996-8.192 97.21 18.022 26.215 26.214 32.223 64.99 18.023 97.212 26.76 15.838 55.706 27.853 86.29 35.498 12.56-32.768 44.236-56.251 81.373-56.251 37.137 0 68.813 23.483 81.374 56.251 30.583-7.645 59.529-19.66 86.29-35.498-14.2-32.222-8.193-70.998 18.021-97.212 26.215-26.214 64.99-32.222 97.212-18.022 15.838-26.76 27.853-55.706 35.499-86.29-32.768-12.56-56.252-43.69-56.252-81.373z m-262.144 87.381c-48.06 0-87.381-39.322-87.381-87.381s39.321-87.382 87.381-87.382 87.381 39.322 87.381 87.382-39.321 87.381-87.38 87.381z m359.356-369.732h318.396v80.281H691.678z m0 323.31h318.396v80.282H691.678zM175.582 818.86h834.492v80.281H175.582z";
+
+                        }
+                        clicked => {
+                            root.current-index = 1;
+                        }
+                    }
+                }
+
+            }
+
+
+        }
+
+        DivideLine {}
+
+        ScrollView {
+            padding-left: 10px;
+            padding-right: 10px;
+            width: parent.width;
+            height: parent.height - 6rem - 2px;
+            if (root.current-index == 0): ConfigPage {}
+
+            if (root.current-index == 1): SettingPage {}
+
+        }
+
+        DivideLine {}
+        property <length> button_width: 4rem;
+        GridLayout {
+            padding-left: 10px;
+            padding-right: 10px;
+            height: 3rem;
+            Row {
+                re := Rectangle {
+                    width: (root.width - 20px - button_width);
+                    height: 3rem;
+                    HorizontalLayout {
+                        spacing: 1px;
+                        Text {
+                            height: re.height;
+                            width: 4rem;
+                            vertical-alignment: center;
+                            horizontal-alignment: left;
+                            text: status-text();
+                        }
+
+                        Rectangle {
+                            height: re.height;
+                            width: 0.8rem;
+                            Path {
+                                width: 0.8rem;
+                                height: 0.8rem;
+                                fill: status-color();
+                                MoveTo {
+                                    x: 50%;
+                                    y: 0%;
+                                }
+
+                                ArcTo {
+                                    radius-x: 50%;
+                                    radius-y: 50%;
+                                    x: 50%;
+                                    y: 100%;
+                                }
+
+                                ArcTo {
+                                    radius-x: 50%;
+                                    radius-y: 50%;
+                                    x: 50%;
+                                    y: 0%;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+
+                    width: button_width;
+                    height: 3rem;
+                    Button {
+                        primary: true;
+                        height: parent.height / 1.3;
+                        width: parent.width;
+                        text: button-text();
+//                        Text {
+//                            height: parent.height;
+//                            width: parent.width;
+//                            vertical-alignment: center;
+//                            horizontal-alignment: right;
+//                            text: button-text();
+//                        }
+
+                        enabled: running-status != 0;
+                        clicked => {
+                            update-running-status(running-status);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
