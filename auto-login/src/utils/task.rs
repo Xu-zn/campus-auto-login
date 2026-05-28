@@ -44,8 +44,14 @@ pub fn task_detection(cancel_token: CancellationToken) -> JoinHandle<()> {
                         NetStatus::Restricted => {
                             warn!("受限网络");
                             net_connect().await;
+                            // 重置 interval 避免 net_connect 耗时过长
+                            // 导致积压 tick 在返回后立即触发二次连接
+                            detect_interval.reset();
                         }
-                        NetStatus::Disconnected => net_connect().await,
+                        NetStatus::Disconnected => {
+                            net_connect().await;
+                            detect_interval.reset();
+                        }
                     }
                 }
             }
