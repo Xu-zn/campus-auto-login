@@ -1,4 +1,6 @@
-# 校园网自动登录
+# 河海大学校园网自动登录
+
+感谢DeepSeek V4 Pro、ChatGPT 5.4以及CodeBuddy，没有它们，GUI一直不想写
 
 ## 使用方法
 
@@ -67,5 +69,5 @@ browser_path = "chrome-linux64/chrome" # chrome的路径，支持绝对路径以
 3. 不要使用高版本的chrome，会有问题，预设的版本号在`.chrome-version`中定义
 
 ## 其他
+对于其他学校使用，可以修改一下elements.toml中需要点击的ID，以及eportal试一下
 
-感谢DeepSeek V4 Pro、ChatGPT 5.4以及CodeBuddy，没有它们，GUI一直不想写
