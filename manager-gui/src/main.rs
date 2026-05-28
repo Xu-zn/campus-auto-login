@@ -5,12 +5,12 @@ slint::include_modules!();
 use slint::Model;
 use std::path::Path;
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use std::fs;
 use campus_core::config::ConfigFile;
 use campus_core::platform;
-use campus_core::process::{check_running, start_auto_login, stop_auto_login};
+use campus_core::process::{check_running, query_uptime, start_auto_login, stop_auto_login};
 
 /// 服务商条目（从 elements.toml 解析）
 struct ServiceEntry {
@@ -18,7 +18,8 @@ struct ServiceEntry {
     name: String,
 }
 
-static START_TIME: Mutex<Option<Instant>> = Mutex::new(None);
+/// auto-login 进程的 Unix 启动时间戳（秒），从 startup_time 文件读取
+static START_TIME: Mutex<Option<u64>> = Mutex::new(None);
 
 /// 全局缓存：已解析的服务商列表（id + name），用于 index ↔ id 映射
 static SERVICES: Mutex<Vec<ServiceEntry>> = Mutex::new(Vec::new());
@@ -37,13 +38,24 @@ fn main() {
         if running {
             let mut t = START_TIME.lock().unwrap();
             if cur != 1 {
-                // 首次检测到运行 — 记录起始时间
-                *t = Some(Instant::now());
+                // 首次检测到运行 — 通过 ipmb 查询 auto-login 启动时间戳
+                let fallback = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                *t = query_uptime().or(Some(fallback));
             }
             // 每次轮询都刷新运行时长
             let uptime = match *t {
-                Some(start) => format_uptime(start),
-                None => format_uptime(Instant::now()),
+                Some(timestamp) => {
+                    let now = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs();
+                    let elapsed = now.saturating_sub(timestamp);
+                    format_uptime(elapsed)
+                }
+                None => "--".to_string(),
             };
             drop(t);
             window.set_running_status(1);
@@ -135,8 +147,10 @@ fn main() {
         if action == "add" {
             model.push(ConnectEntry { url: "".into(), value: "".into() });
         } else if let Some(idx_str) = action.strip_prefix("del-") {
-            if let Ok(idx) = idx_str.parse::<usize>() {
-                if idx < model.row_count() { model.remove(idx); }
+            if model.row_count() > 1 {
+                if let Ok(idx) = idx_str.parse::<usize>() {
+                    if idx < model.row_count() { model.remove(idx); }
+                }
             }
         } else if let Some(rest) = action.strip_prefix("url:") {
             // format: "url:INDEX:NEW_VALUE"
@@ -162,15 +176,16 @@ fn main() {
     });
 
     // ── 启动时自动加载配置 ──
-    load_config_to_window(&manager_window);
     load_services_to_window(&manager_window);
+    load_config_to_window(&manager_window);
 
     // ── 启动/停止 ──
     manager_window.on_update_running_status(|cur: i32| {
         if cur == 1 {
             stop_auto_login();
         } else {
-            *START_TIME.lock().unwrap() = Some(Instant::now());
+            // 重置启动时间，下一次轮询时会从 startup_time 文件读取真实启动时间
+            *START_TIME.lock().unwrap() = None;
             start_auto_login();
         }
     });
@@ -282,6 +297,8 @@ service_tip = \"selectDisname\"\n";
 /// 从 config.toml 加载配置到窗口属性
 fn load_config_to_window(window: &ManagerWindow) {
     let config_path = Path::new("config.toml");
+    // 清除之前的保存校验错误
+    window.set_config_save_error("".into());
     match ConfigFile::load_config(config_path) {
         Ok(config) => {
             window.set_config_toml_ok(true);
@@ -407,6 +424,50 @@ fn load_services_to_window(window: &ManagerWindow) {
 
 /// 从窗口表单字段重建 config.toml 并写入文件
 fn save_config_from_window(window: &ManagerWindow) {
+    // ── 校验必填字段 ──
+    let username = window.get_config_login_username();
+    let password = window.get_config_login_password();
+    let eportal = window.get_config_login_eportal();
+    let timout = window.get_config_login_timout();
+    let interval = window.get_config_query_interval();
+    let driver_port = window.get_config_driver_port();
+    let driver_path = window.get_config_driver_path();
+    let browser_path = window.get_config_browser_path();
+    let entries = window.get_config_connect_entries();
+
+    let mut errors: Vec<&str> = Vec::new();
+    if username.trim().is_empty() { errors.push("用户名不能为空"); }
+    if password.trim().is_empty() { errors.push("密码不能为空"); }
+    if eportal.trim().is_empty() { errors.push("门户地址不能为空"); }
+    if timout.trim().is_empty() { errors.push("超时不能为空"); }
+    if interval.trim().is_empty() { errors.push("检测间隔不能为空"); }
+    if driver_port.trim().is_empty() { errors.push("驱动端口不能为空"); }
+    if driver_path.trim().is_empty() { errors.push("Driver 路径不能为空"); }
+    if browser_path.trim().is_empty() { errors.push("浏览器路径不能为空"); }
+    if entries.row_count() == 0 { errors.push("连接检测列表不能为空"); }
+
+    // 校验每个连接条目的 url 和 value 不能为空
+    if entries.row_count() > 0 {
+        let mut has_empty_url = false;
+        let mut has_empty_val = false;
+        for i in 0..entries.row_count() {
+            if let Some(entry) = entries.row_data(i) {
+                if entry.url.trim().is_empty() { has_empty_url = true; }
+                if entry.value.trim().is_empty() { has_empty_val = true; }
+            }
+        }
+        if has_empty_url { errors.push("连接条目URL不能为空"); }
+        if has_empty_val { errors.push("连接条目值不能为空"); }
+    }
+
+    if !errors.is_empty() {
+        window.set_config_save_error(errors.join("；").into());
+        return;
+    }
+
+    // 清除之前的错误
+    window.set_config_save_error("".into());
+
     // 从 ComboBox 选中索引获取服务商 id
     let svc_idx = window.get_config_service_current_index() as usize;
     let service_id = {
@@ -418,23 +479,22 @@ fn save_config_from_window(window: &ManagerWindow) {
     };
 
     // 从模型收集连接条目
-    let entries = window.get_config_connect_entries();
     let connections: Vec<(String, String)> = (0..entries.row_count())
         .filter_map(|i| entries.row_data(i))
         .map(|e| (e.url.into(), e.value.into()))
         .collect();
 
     let toml_content = build_toml_from_form(
-        window.get_config_login_username().as_str(),
-        window.get_config_login_password().as_str(),
+        username.as_str(),
+        password.as_str(),
         service_id.as_str(),
-        window.get_config_login_eportal().as_str(),
-        window.get_config_login_timout().as_str(),
-        window.get_config_query_interval().as_str(),
+        eportal.as_str(),
+        timout.as_str(),
+        interval.as_str(),
         &connections,
-        window.get_config_driver_port().as_str(),
-        window.get_config_driver_path().as_str(),
-        window.get_config_browser_path().as_str(),
+        driver_port.as_str(),
+        driver_path.as_str(),
+        browser_path.as_str(),
     );
 
     if let Err(e) = fs::write("config.toml", &toml_content) {
@@ -542,13 +602,10 @@ browser_path = "{}"
     )
 }
 
-/// 格式化运行时长
-fn format_uptime(start: Instant) -> String {
-    let elapsed = start.elapsed();
-    let secs = elapsed.as_secs();
-    let h = secs / 3600;
-    let m = (secs % 3600) / 60;
-    let s = secs % 60;
+fn format_uptime(elapsed_secs: u64) -> String {
+    let h = elapsed_secs / 3600;
+    let m = (elapsed_secs % 3600) / 60;
+    let s = elapsed_secs % 60;
     if h > 0 {
         format!("{}h {}m", h, m)
     } else if m > 0 {

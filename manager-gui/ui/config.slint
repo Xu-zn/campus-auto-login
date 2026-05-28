@@ -6,7 +6,7 @@ import {
     TextEdit,
     ComboBox,
 } from "std-widgets.slint";
-import { DeleteIcon } from "./svgicon.slint";
+import { DeleteIcon, StatusSvgIcon } from "./svgicon.slint";
 
 
 struct ConnectEntry {
@@ -17,7 +17,7 @@ struct ConnectEntry {
 export component ConfigPage inherits Rectangle {
     width: 100%;
     height: 100%;
-    background: #0d0d1a;
+    background: #f0f0f5;
 
     in-out property <string> config-toml-text: "";
 
@@ -46,12 +46,13 @@ export component ConfigPage inherits Rectangle {
 
     // ── 配置文件状态 ──
     in-out property <bool> config-exists: false;
+    in-out property <string> save-error: "";
 
     VerticalLayout {
         // ── 标题栏 (固定) ──
         Rectangle {
             height: 88px;
-            background: #0d0d1a;
+            background: #f0f0f5;
             VerticalLayout {
                 // 第一行：标题
                 Rectangle {
@@ -62,7 +63,7 @@ export component ConfigPage inherits Rectangle {
                             text: "配置管理";
                             font-size: 18px;
                             font-weight: 600;
-                            color: #ebebf5;
+                            color: #1a1a2e;
                             vertical-alignment: center;
                         }
                     }
@@ -77,7 +78,7 @@ export component ConfigPage inherits Rectangle {
 
                         // 模式切换
                         Rectangle {
-                            background: #1a1a30;
+                            background: #e8e8f2;
                             border-radius: 8px;
                             width: 106px;
                             height: 32px;
@@ -85,14 +86,14 @@ export component ConfigPage inherits Rectangle {
                                 padding: 2px;
                                 spacing: 0px;
                                 Rectangle {
-                                    background: root.edit-raw-toml ? #00000000 : #6c63ff30;
+                                    background: root.edit-raw-toml ? #00000000 : #6c63ff18;
                                     border-radius: 6px;
                                     width: 50px;
                                     Text {
                                         text: "表单";
                                         font-size: 11px;
                                         font-weight: 500;
-                                        color: root.edit-raw-toml ? #9898b0 : #a78bfa;
+                                        color: root.edit-raw-toml ? #5a5a70 : #6c63ff;
                                         horizontal-alignment: center;
                                         vertical-alignment: center;
                                     }
@@ -105,14 +106,14 @@ export component ConfigPage inherits Rectangle {
                                 }
 
                                 Rectangle {
-                                    background: root.edit-raw-toml ? #6c63ff30 : #00000000;
+                                    background: root.edit-raw-toml ? #6c63ff18 : #00000000;
                                     border-radius: 6px;
                                     width: 50px;
                                     Text {
                                         text: "源码";
                                         font-size: 11px;
                                         font-weight: 500;
-                                        color: root.edit-raw-toml ? #a78bfa : #9898b0;
+                                        color: root.edit-raw-toml ? #6c63ff : #5a5a70;
                                         horizontal-alignment: center;
                                         vertical-alignment: center;
                                     }
@@ -157,20 +158,20 @@ export component ConfigPage inherits Rectangle {
         // ── 内容区 (TOML 编辑器模式) ──
         if root.edit-raw-toml: Rectangle {
             vertical-stretch: 1;
-            background: #141428;
+            background: #ffffff;
             border-radius: 12px;
             border-width: 1px;
-            border-color: #ffffff10;
+            border-color: #e0e0e6;
             VerticalLayout {
                 Rectangle {
                     height: 32px;
-                    background: #1a1a30;
+                    background: #e8e8f2;
                     HorizontalLayout {
                         padding: 8px;
                         Text {
                             text: "config.toml";
                             font-size: 11px;
-                            color: #6b6b80;
+                            color: #8a8aa0;
                             font-family: "Cascadia Code";
                         }
                     }
@@ -199,10 +200,10 @@ export component ConfigPage inherits Rectangle {
 
                 // ══ 配置文件不存在时的提示横幅 ══
                 if !root.config-exists: Rectangle {
-                    background: #f59e0b15;
+                    background: #f59e0b0c;
                     border-radius: 10px;
                     border-width: 1px;
-                    border-color: #f59e0b30;
+                    border-color: #f59e0b20;
                     height: 56px;
                     VerticalLayout {
                         alignment: center;
@@ -218,7 +219,7 @@ export component ConfigPage inherits Rectangle {
                             Text {
                                 text: "配置文件 (config.toml) 不存在";
                                 font-size: 13px;
-                                color: #fbbf24;
+                                color: #d97706;
                                 vertical-alignment: center;
                             }
 
@@ -238,12 +239,37 @@ export component ConfigPage inherits Rectangle {
                     }
                 }
 
+                // ══ 保存校验错误横幅 ══
+                if root.save-error != "": Rectangle {
+                    background: #ff65840c;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #ff658420;
+                    height: 56px;
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            padding-left: 16px;
+                            spacing: 12px;
+                            StatusSvgIcon {
+                                ok: false;
+                            }
+                            Text {
+                                text: root.save-error;
+                                font-size: 13px;
+                                color: #ff6584;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+
                 // === [login.info] ===
                 Rectangle {
-                    background: #141428;
+                    background: #ffffff;
                     border-radius: 12px;
                     border-width: 1px;
-                    border-color: #ffffff10;
+                    border-color: #e0e0e6;
                     height: 174px;
                     VerticalLayout {
                         padding: 16px;
@@ -252,7 +278,7 @@ export component ConfigPage inherits Rectangle {
                             text: "[login.info] 登录信息";
                             font-size: 14px;
                             font-weight: 600;
-                            color: #a78bfa;
+                            color: #6c63ff;
                         }
 
                         Rectangle {
@@ -261,16 +287,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "用户名";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     LineEdit {
                                         text <=> root.login-username;
                                         font-size: 13px;
@@ -289,16 +315,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "密码";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     LineEdit {
                                         text <=> root.login-password;
                                         font-size: 13px;
@@ -318,16 +344,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "服务商";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     width: 140px;
                                     ComboBox {
                                         width: 100%;
@@ -344,10 +370,10 @@ export component ConfigPage inherits Rectangle {
 
                 // === [login.config] ===
                 Rectangle {
-                    background: #141428;
+                    background: #ffffff;
                     border-radius: 12px;
                     border-width: 1px;
-                    border-color: #ffffff10;
+                    border-color: #e0e0e6;
                     height: 145px;
                     VerticalLayout {
                         padding: 16px;
@@ -356,7 +382,7 @@ export component ConfigPage inherits Rectangle {
                             text: "[login.config] 页面配置";
                             font-size: 14px;
                             font-weight: 600;
-                            color: #a78bfa;
+                            color: #6c63ff;
                         }
 
                         Rectangle {
@@ -365,16 +391,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "门户地址";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     LineEdit {
                                         text <=> root.login-eportal;
                                         font-size: 13px;
@@ -393,16 +419,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "超时(s)";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     width: 120px;
                                     LineEdit {
                                         text <=> root.login-timout;
@@ -420,10 +446,10 @@ export component ConfigPage inherits Rectangle {
 
                 // === [query] 网络检测 (内容驱动高度) ===
                 Rectangle {
-                    background: #141428;
+                    background: #ffffff;
                     border-radius: 12px;
                     border-width: 1px;
-                    border-color: #ffffff10;
+                    border-color: #e0e0e6;
                     VerticalLayout {
                         padding: 16px;
                         spacing: 10px;
@@ -431,7 +457,7 @@ export component ConfigPage inherits Rectangle {
                             text: "[query] 网络检测";
                             font-size: 14px;
                             font-weight: 600;
-                            color: #a78bfa;
+                            color: #6c63ff;
                         }
 
                         Rectangle {
@@ -440,16 +466,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "检测间隔(s)";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     width: 120px;
                                     LineEdit {
                                         text <=> root.query-interval;
@@ -471,7 +497,7 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "连接检测列表";
                                     font-size: 12px;
-                                    color: #6b6b80;
+                                    color: #8a8aa0;
                                     vertical-alignment: center;
                                 }
 
@@ -482,12 +508,12 @@ export component ConfigPage inherits Rectangle {
                                 Rectangle {
                                     width: 72px;
                                     height: 26px;
-                                    background: #6c63ff20;
+                                    background: #6c63ff10;
                                     border-radius: 6px;
                                     Text {
                                         text: "+ 添加";
                                         font-size: 11px;
-                                        color: #a78bfa;
+                                        color: #6c63ff;
                                         font-weight: 500;
                                         horizontal-alignment: center;
                                         vertical-alignment: center;
@@ -510,10 +536,10 @@ export component ConfigPage inherits Rectangle {
                             HorizontalLayout {
                                 spacing: 4px;
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 4px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     LineEdit {
                                         text: entry.url;
                                         font-size: 11px;
@@ -528,10 +554,10 @@ export component ConfigPage inherits Rectangle {
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 4px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     width: 120px;
                                     LineEdit {
                                         text: entry.value;
@@ -549,7 +575,7 @@ export component ConfigPage inherits Rectangle {
                                 Rectangle {
                                     width: 28px;
                                     height: 28px;
-                                    background: #ff658418;
+                                    background: #ff65840c;
                                     border-radius: 4px;
                                     DeleteIcon {
                                         width: 14px;
@@ -565,7 +591,7 @@ export component ConfigPage inherits Rectangle {
                                         }
                                     }
 
-                                    visible: root.config-exists;
+                                    visible: root.config-exists && root.connect-entries.length > 1;
                                 }
                             }
                         }
@@ -574,10 +600,10 @@ export component ConfigPage inherits Rectangle {
 
                 // === [driver.chrome] ===
                 Rectangle {
-                    background: #141428;
+                    background: #ffffff;
                     border-radius: 12px;
                     border-width: 1px;
-                    border-color: #ffffff10;
+                    border-color: #e0e0e6;
                     height: 170px;
                     VerticalLayout {
                         padding: 16px;
@@ -586,7 +612,7 @@ export component ConfigPage inherits Rectangle {
                             text: "[driver.chrome] 浏览器驱动";
                             font-size: 14px;
                             font-weight: 600;
-                            color: #a78bfa;
+                            color: #6c63ff;
                         }
 
                         Rectangle {
@@ -595,16 +621,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "端口";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     width: 120px;
                                     LineEdit {
                                         text <=> root.driver-port;
@@ -624,16 +650,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "Driver 路径";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     LineEdit {
                                         text <=> root.driver-path;
                                         font-size: 13px;
@@ -652,16 +678,16 @@ export component ConfigPage inherits Rectangle {
                                 Text {
                                     text: "浏览器路径";
                                     font-size: 13px;
-                                    color: #9898b0;
+                                    color: #5a5a70;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Rectangle {
-                                    background: #0d0d1a;
+                                    background: #f0f0f5;
                                     border-radius: 6px;
                                     border-width: 1px;
-                                    border-color: #ffffff10;
+                                    border-color: #e0e0e6;
                                     LineEdit {
                                         text <=> root.browser-path;
                                         font-size: 13px;

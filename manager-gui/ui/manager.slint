@@ -12,7 +12,7 @@ struct ConnectEntry {
 component DivideLine inherits Path {
     width: 100%;
     height: 1px;
-    stroke: #ffffff12;
+    stroke: #d5d5dd;
     stroke-width: 1px;
 
     MoveTo {
@@ -31,12 +31,12 @@ component DivideLine inherits Path {
 component NavTab inherits Rectangle {
     in property <string> label;
     in property <bool> active;
-    in-out property <brush> active-color: #a78bfa;
+    in-out property <brush> active-color: #6c63ff;
     callback clicked();
 
     min-width: 80px;
     height: 44px;
-    background: active ? #6c63ff18 : #00000000;
+    background: active ? #6c63ff10 : #00000000;
     border-radius: 10px;
 
     HorizontalLayout {
@@ -48,7 +48,7 @@ component NavTab inherits Rectangle {
             text: label;
             font-size: 13px;
             font-weight: active ? 600 : 400;
-            color: active ? #ebebf5 : #9898b0;
+            color: active ? #1a1a2e : #5a5a70;
             horizontal-alignment: center;
             vertical-alignment: center;
         }
@@ -79,7 +79,7 @@ export component ManagerWindow inherits Window {
     title: "Campus Auto-Login";
     default-font-family: "Microsoft YaHei";
     icon: @image-url("../icons/neco.png");
-    background: #0d0d1a;
+    background: #f0f0f5;
 
     // ═══ 运行状态 ═══
     in-out property <int> running-status: 0;  // 0=待检测 1=运行中 2=未运行
@@ -115,6 +115,7 @@ export component ManagerWindow inherits Window {
     in-out property <string> config-driver-port: "18888";
     in-out property <string> config-driver-path: "chromedriver-win64/chromedriver.exe";
     in-out property <string> config-browser-path: "chrome-win64/chrome.exe";
+    in-out property <string> config-save-error: "";
 
     // ═══ 日志 ═══
     in-out property <string> log-content: "";
@@ -225,7 +226,7 @@ export component ManagerWindow inherits Window {
         // ── 顶部导航栏 ──
         Rectangle {
             height: 56px;
-            background: #0e0e1a;
+            background: #f5f5fa;
             HorizontalLayout {
                 padding-left: 24px;
                 padding-right: 24px;
@@ -258,16 +259,10 @@ export component ManagerWindow inherits Window {
                             text: "Campus Login";
                             font-size: 14px;
                             font-weight: 700;
-                            color: #ebebf5;
+                            color: #1a1a2e;
                             vertical-alignment: center;
                         }
                     }
-                }
-
-                Rectangle {
-                    width: 1px;
-                    height: 24px;
-                    background: #ffffff10;
                 }
 
                 NavTab {
@@ -282,7 +277,7 @@ export component ManagerWindow inherits Window {
                 NavTab {
                     label: "配置管理";
                     active: root.current-index == 1;
-                    active-color: #a78bfa;
+                    active-color: #6c63ff;
                     clicked => {
                         root.current-index = 1;
                     }
@@ -356,6 +351,7 @@ export component ManagerWindow inherits Window {
                 config-action <=> root.config-action;
                 connect-action <=> root.connect-action;
                 config-exists <=> root.config-toml-ok;
+                save-error <=> root.config-save-error;
             }
 
             if (root.current-index == 2): LogsPage {
@@ -376,7 +372,7 @@ export component ManagerWindow inherits Window {
         // ── 底部状态栏 ──
         Rectangle {
             height: 52px;
-            background: #0e0e1a;
+            background: #f5f5fa;
             HorizontalLayout {
                 padding-left: 24px;
                 padding-right: 24px;
@@ -404,7 +400,7 @@ export component ManagerWindow inherits Window {
                             text: status-text();
                             font-size: 13px;
                             font-weight: 600;
-                            color: #ebebf5;
+                            color: #1a1a2e;
                             vertical-alignment: center;
                         }
                     }

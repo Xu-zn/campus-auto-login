@@ -4,7 +4,7 @@ import { Button, ScrollView, TextEdit } from "std-widgets.slint";
 export component LogsPage inherits Rectangle {
     width: 100%;
     height: 100%;
-    background: #0d0d1a;
+    background: #f0f0f5;
 
     in-out property <string> log-content: "";
     in-out property <int>    log-line-count: 0;
@@ -24,20 +24,20 @@ export component LogsPage inherits Rectangle {
             height: 36px;
             HorizontalLayout {
                 spacing: 8px;
-                Text { text: "日志查看"; font-size: 18px; font-weight: 600; color: #ebebf5; }
+                Text { text: "日志查看"; font-size: 18px; font-weight: 600; color: #1a1a2e; }
 
                 Rectangle {
-                    background: #1a1a30;
+                    background: #e8e8f2;
                     border-radius: 8px;
                     HorizontalLayout {
                         padding: 2px;
                         spacing: 2px;
 
-                        Rectangle { background: root.log-filter-level == "all" ? #6c63ff30 : #00000000; border-radius: 6px;
+                        Rectangle { background: root.log-filter-level == "all" ? #6c63ff18 : #00000000; border-radius: 6px;
                             HorizontalLayout {
                                 padding-left: 10px; padding-right: 10px;
                                 padding-top: 5px; padding-bottom: 5px;
-                                Text { text: "全部"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "all" ? #a78bfa : #9898b0; }
+                                Text { text: "全部"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "all" ? #6c63ff : #5a5a70; }
                             }
                             TouchArea { clicked => { root.log-filter-level = "all"; } }
                         }
@@ -45,7 +45,7 @@ export component LogsPage inherits Rectangle {
                             HorizontalLayout {
                                 padding-left: 10px; padding-right: 10px;
                                 padding-top: 5px; padding-bottom: 5px;
-                                Text { text: "INFO"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "info" ? #60a5fa : #9898b0; }
+                                Text { text: "INFO"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "info" ? #60a5fa : #5a5a70; }
                             }
                             TouchArea { clicked => { root.log-filter-level = "info"; } }
                         }
@@ -53,15 +53,15 @@ export component LogsPage inherits Rectangle {
                             HorizontalLayout {
                                 padding-left: 10px; padding-right: 10px;
                                 padding-top: 5px; padding-bottom: 5px;
-                                Text { text: "WARN"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "warn" ? #f4a261 : #9898b0; }
+                                Text { text: "WARN"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "warn" ? #f4a261 : #5a5a70; }
                             }
                             TouchArea { clicked => { root.log-filter-level = "warn"; } }
                         }
-                        Rectangle { background: root.log-filter-level == "error" ? #ff658430 : #00000000; border-radius: 6px;
+                        Rectangle { background: root.log-filter-level == "error" ? #ff658420 : #00000000; border-radius: 6px;
                             HorizontalLayout {
                                 padding-left: 10px; padding-right: 10px;
                                 padding-top: 5px; padding-bottom: 5px;
-                                Text { text: "ERROR"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "error" ? #ff6584 : #9898b0; }
+                                Text { text: "ERROR"; font-size: 11px; font-weight: 500; color: root.log-filter-level == "error" ? #ff6584 : #5a5a70; }
                             }
                             TouchArea { clicked => { root.log-filter-level = "error"; } }
                         }
@@ -75,19 +75,19 @@ export component LogsPage inherits Rectangle {
 
         // 日志内容区
         Rectangle {
-            background: #141428;
+            background: #ffffff;
             border-radius: 12px;
             border-width: 1px;
-            border-color: #ffffff10;
+            border-color: #e0e0e6;
             VerticalLayout {
                 Rectangle {
                     height: 32px;
-                    background: #1a1a30;
+                    background: #e8e8f2;
                     HorizontalLayout {
                         padding: 8px;
                         Text {
                             text: "显示 " + root.log-line-count + " 条 · 共 " + root.log-total-count + " 条";
-                            font-size: 11px; color: #6b6b80;
+                            font-size: 11px; color: #8a8aa0;
                             font-family: "Cascadia Code";
                         }
                     }
@@ -106,11 +106,11 @@ export component LogsPage inherits Rectangle {
 
                 Rectangle {
                     height: 36px;
-                    background: #1a1a30;
+                    background: #e8e8f2;
                     HorizontalLayout {
                         padding: 8px;
                         spacing: 8px;
-                        Text { text: "自动刷新间隔: 3s"; font-size: 11px; color: #6b6b80; vertical-alignment: center; }
+                        Text { text: "自动刷新间隔: 3s"; font-size: 11px; color: #8a8aa0; vertical-alignment: center; }
                         Button { text: "⬇ 导出日志"; clicked => { root.export-logs(); } }
                     }
                 }

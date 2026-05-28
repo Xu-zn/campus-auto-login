@@ -17,6 +17,10 @@ pub enum CampusError {
     #[error("配置文件序列化失败")]
     ConfigSerialize(#[source] toml::ser::Error),
 
+    /// 配置文件值校验失败（字段为空等）
+    #[error("配置校验失败: {0}")]
+    ConfigValidation(String),
+
     // ── 页面元素配置 ──
 
     /// 页面元素配置文件 elements.toml 不存在

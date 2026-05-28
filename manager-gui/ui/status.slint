@@ -1,8 +1,9 @@
+import { Switch } from "std-widgets.slint";
 import { StatusSvgIcon } from "./svgicon.slint";
 
 // 运行状态页面 — 服务状态 + 运行时环境检测
 export component StatusPage inherits Rectangle {
-    background: #0d0d1a;
+    background: #f0f0f5;
 
     // ── 由 Rust 端刷新的属性 ──
     in-out property <string> running-status-text: "检测中...";
@@ -61,20 +62,20 @@ export component StatusPage inherits Rectangle {
             // 服务状态卡片
             Rectangle {
                 horizontal-stretch: 1;
-                background: #141428;
+                background: #ffffff;
                 border-radius: 12px;
                 border-width: 1px;
-                border-color: root.status-dot-color == #34d399 ? #34d39930 : #ffffff10;
+                border-color: root.status-dot-color == #34d399 ? #34d39930 : #e0e0e6;
                 height: 100px;
                 VerticalLayout {
                     padding: 20px;
                     spacing: 8px;
-                    Text {
-                        text: "服务状态";
-                        font-size: 13px;
-                        color: #9898b0;
-                        font-weight: 500;
-                    }
+                        Text {
+                            text: "服务状态";
+                            font-size: 13px;
+                            color: #5a5a70;
+                            font-weight: 500;
+                        }
 
                     HorizontalLayout {
 
@@ -96,7 +97,7 @@ export component StatusPage inherits Rectangle {
                             text: root.running-status-text;
                             font-size: 28px;
                             font-weight: 700;
-                            color: #ebebf5;
+                            color: #1a1a2e;
                         }
 
                         Rectangle {
@@ -107,14 +108,14 @@ export component StatusPage inherits Rectangle {
                             width: 72px;
                             height: 32px;
                             border-radius: 8px;
-                            background: root.status-action-enabled ? #6c63ff : #ffffff08;
+                            background: root.status-action-enabled ? #6c63ff : #e0e0e8;
                             VerticalLayout {
                                 alignment: center;
                                 Text {
                                     text: root.status-action-text;
                                     font-size: 13px;
                                     font-weight: 500;
-                                    color: root.status-action-enabled ? #ffffff : #6b6b80;
+                                    color: root.status-action-enabled ? #ffffff : #a0a0b0;
                                     horizontal-alignment: center;
                                 }
                             }
@@ -133,37 +134,75 @@ export component StatusPage inherits Rectangle {
             // 运行时长卡片
             Rectangle {
                 horizontal-stretch: 1;
-                background: #141428;
+                background: #ffffff;
                 border-radius: 12px;
                 border-width: 1px;
-                border-color: #ffffff10;
+                border-color: #e0e0e6;
                 height: 100px;
                 VerticalLayout {
                     padding: 20px;
                     spacing: 8px;
-                    Text {
-                        text: "运行时长";
-                        font-size: 13px;
-                        color: #9898b0;
+                        Text {
+                            text: "运行时长";
+                            font-size: 13px;
+                            color: #5a5a70;
                         font-weight: 500;
                     }
 
                     Text {
-                        text: root.uptime;
-                        font-size: 28px;
-                        font-weight: 700;
-                        color: #ebebf5;
+                            text: root.uptime;
+                            font-size: 28px;
+                            font-weight: 700;
+                            color: #1a1a2e;
                     }
+                }
+            }
+        }
+
+        // ═══ 开机自启设置 ═══
+        Rectangle {
+            background: #ffffff;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #e0e0e6;
+            height: 56px;
+            HorizontalLayout {
+                padding-left: 20px;
+                padding-right: 20px;
+                VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text {
+                            text: "开机自启";
+                            font-size: 13px;
+                            color: #5a5a70;
+                            vertical-alignment: center;
+                        }
+                        Text {
+                            text: "（功能尚未实现）";
+                            font-size: 10px;
+                            color: #a0a0b0;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                Switch {
+                    checked: false;
+                    enabled: false;
                 }
             }
         }
 
         // ═══ 第二行：运行环境检测 ═══
         Rectangle {
-            background: #141428;
+            background: #ffffff;
             border-radius: 12px;
             border-width: 1px;
-            border-color: #ffffff10;
+            border-color: #e0e0e6;
             vertical-stretch: 0;
             VerticalLayout {
                 padding: 20px;
@@ -173,7 +212,7 @@ export component StatusPage inherits Rectangle {
                     text: "运行环境检测";
                     font-size: 15px;
                     font-weight: 600;
-                    color: #ebebf5;
+                    color: #1a1a2e;
                 }
 
                 // 分割
@@ -188,7 +227,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: "📄 config.toml";
                             font-size: 13px;
-                            color: #9898b0;
+                            color: #5a5a70;
                             width: 160px;
                             vertical-alignment: center;
                         }
@@ -209,7 +248,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: root.config-toml-path;
                             font-size: 11px;
-                            color: #6b6b80;
+                            color: #8a8aa0;
                             font-family: "Cascadia Code";
                             vertical-alignment: center;
                             overflow: elide;
@@ -221,15 +260,15 @@ export component StatusPage inherits Rectangle {
                             width: root.env-config-processing ? 80px : 64px;
                             height: 28px;
                             border-radius: 6px;
-                            background: #6c63ff18;
+                            background: #6c63ff10;
                             border-width: 1px;
-                            border-color: #6c63ff40;
+                            border-color: #6c63ff18;
                             VerticalLayout {
                                 alignment: center;
                                 Text {
                                     text: root.env-config-processing ? "处理中..." : "创建";
                                     font-size: 12px;
-                                    color: root.env-config-processing ? #6b6b80 : #a78bfa;
+                                    color: root.env-config-processing ? #a0a0b0 : #6c63ff;
                                     horizontal-alignment: center;
                                 }
                             }
@@ -243,7 +282,7 @@ export component StatusPage inherits Rectangle {
 
                 Rectangle {
                     height: 1px;
-                    background: #ffffff08;
+                    background: #eaeaef;
                 }
 
                 // ── elements.toml ──
@@ -253,7 +292,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: "📄 elements.toml";
                             font-size: 13px;
-                            color: #9898b0;
+                            color: #5a5a70;
                             width: 160px;
                             vertical-alignment: center;
                         }
@@ -274,7 +313,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: root.elements-toml-path;
                             font-size: 11px;
-                            color: #6b6b80;
+                            color: #8a8aa0;
                             font-family: "Cascadia Code";
                             vertical-alignment: center;
                             overflow: elide;
@@ -286,15 +325,15 @@ export component StatusPage inherits Rectangle {
                             width: root.env-elements-processing ? 80px : 64px;
                             height: 28px;
                             border-radius: 6px;
-                            background: #6c63ff18;
+                            background: #6c63ff10;
                             border-width: 1px;
-                            border-color: #6c63ff40;
+                            border-color: #6c63ff18;
                             VerticalLayout {
                                 alignment: center;
                                 Text {
                                     text: root.env-elements-processing ? "处理中..." : "创建";
                                     font-size: 12px;
-                                    color: root.env-elements-processing ? #6b6b80 : #a78bfa;
+                                    color: root.env-elements-processing ? #a0a0b0 : #6c63ff;
                                     horizontal-alignment: center;
                                 }
                             }
@@ -308,7 +347,7 @@ export component StatusPage inherits Rectangle {
 
                 Rectangle {
                     height: 1px;
-                    background: #ffffff08;
+                    background: #eaeaef;
                 }
 
                 // ── Chrome ──
@@ -318,7 +357,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: "🌐 Chrome 浏览器";
                             font-size: 13px;
-                            color: #9898b0;
+                            color: #5a5a70;
                             width: 160px;
                             vertical-alignment: center;
                         }
@@ -339,7 +378,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: root.chrome-path;
                             font-size: 11px;
-                            color: #6b6b80;
+                            color: #8a8aa0;
                             font-family: "Cascadia Code";
                             vertical-alignment: center;
                             overflow: elide;
@@ -351,15 +390,15 @@ export component StatusPage inherits Rectangle {
                             width: root.env-chrome-processing ? 80px : 64px;
                             height: 28px;
                             border-radius: 6px;
-                            background: #6c63ff18;
+                            background: #6c63ff10;
                             border-width: 1px;
-                            border-color: #6c63ff40;
+                            border-color: #6c63ff18;
                             VerticalLayout {
                                 alignment: center;
                                 Text {
                                     text: root.env-chrome-processing ? "下载中..." : "下载";
                                     font-size: 12px;
-                                    color: root.env-chrome-processing ? #6b6b80 : #a78bfa;
+                                    color: root.env-chrome-processing ? #a0a0b0 : #6c63ff;
                                     horizontal-alignment: center;
                                 }
                             }
@@ -373,7 +412,7 @@ export component StatusPage inherits Rectangle {
 
                 Rectangle {
                     height: 1px;
-                    background: #ffffff08;
+                    background: #eaeaef;
                 }
 
                 // ── ChromeDriver ──
@@ -383,7 +422,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: "🔧 ChromeDriver";
                             font-size: 13px;
-                            color: #9898b0;
+                            color: #5a5a70;
                             width: 160px;
                             vertical-alignment: center;
                         }
@@ -404,7 +443,7 @@ export component StatusPage inherits Rectangle {
                         Text {
                             text: root.chromedriver-path;
                             font-size: 11px;
-                            color: #6b6b80;
+                            color: #8a8aa0;
                             font-family: "Cascadia Code";
                             vertical-alignment: center;
                             overflow: elide;
@@ -416,15 +455,15 @@ export component StatusPage inherits Rectangle {
                             width: root.env-driver-processing ? 80px : 64px;
                             height: 28px;
                             border-radius: 6px;
-                            background: #6c63ff18;
+                            background: #6c63ff10;
                             border-width: 1px;
-                            border-color: #6c63ff40;
+                            border-color: #6c63ff18;
                             VerticalLayout {
                                 alignment: center;
                                 Text {
                                     text: root.env-driver-processing ? "下载中..." : "下载";
                                     font-size: 12px;
-                                    color: root.env-driver-processing ? #6b6b80 : #a78bfa;
+                                    color: root.env-driver-processing ? #a0a0b0 : #6c63ff;
                                     horizontal-alignment: center;
                                 }
                             }

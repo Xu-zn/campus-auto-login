@@ -42,13 +42,35 @@ pub fn stop_auto_login() {
     use ipmb::label;
     let options = ipmb::Options::new("campus-login", label!("cli"), "");
     match ipmb::join::<String, String>(options, None) {
-        Ok((sender, _receiver)) => {
+        Ok((sender, _)) => {
             let selector = ipmb::Selector::unicast("core");
             let message = ipmb::Message::new(selector, "exit".to_string());
             let _ = sender.send(message);
         }
         Err(e) => eprintln!("停止服务失败: {}", e),
     }
+}
+
+/// 通过 ipmb 向 auto-login 查询启动 Unix 时间戳（秒）
+#[cfg(windows)]
+pub fn query_uptime() -> Option<u64> {
+    use ipmb::label;
+    use std::time::Duration;
+    let options = ipmb::Options::new("campus-login", label!("cli"), "");
+    let (sender, mut receiver) = ipmb::join::<String, String>(options, None).ok()?;
+    let selector = ipmb::Selector::unicast("core");
+    let message = ipmb::Message::new(selector, "uptime".to_string());
+    sender.send(message).ok()?;
+    match receiver.recv(Some(Duration::from_secs(2))) {
+        Ok(msg) => msg.payload.parse::<u64>().ok(),
+        Err(_) => None,
+    }
+}
+
+/// 非 Windows 平台上无法通过 ipmb 查询，始终返回 None
+#[cfg(not(windows))]
+pub fn query_uptime() -> Option<u64> {
+    None
 }
 
 #[cfg(not(windows))]

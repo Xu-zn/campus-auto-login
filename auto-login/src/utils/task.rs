@@ -61,9 +61,11 @@ pub fn task_detection(cancel_token: CancellationToken) -> JoinHandle<()> {
 
 #[cfg(windows)]
 pub fn task_stop() -> JoinHandle<()> {
+    use crate::STARTUP_TIMESTAMP;
+
     tokio::spawn(async {
         let options = ipmb::Options::new("campus-login", ipmb::label!("core"), "");
-        let (_, mut receiver) = match ipmb::join::<(), String>(options, None) {
+        let (sender, mut receiver) = match ipmb::join::<String, String>(options, None) {
             Ok(t) => t,
             Err(_) => {
                 error!("ipmb连接失败");
@@ -74,6 +76,17 @@ pub fn task_stop() -> JoinHandle<()> {
         while let Ok(message) = receiver.recv(None) {
             match message.payload.as_str() {
                 "exit" => break,
+                "uptime" => {
+                    let ts = STARTUP_TIMESTAMP
+                        .get()
+                        .map(|t| t.to_string())
+                        .unwrap_or_else(|| "0".to_string());
+                    let reply = ipmb::Message::new(
+                        ipmb::Selector::unicast("cli"),
+                        ts,
+                    );
+                    let _ = sender.send(reply);
+                }
                 _ => { /* 忽略来历不明的信号 */ }
             }
         }
