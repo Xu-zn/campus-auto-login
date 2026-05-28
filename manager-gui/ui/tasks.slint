@@ -1,0 +1,287 @@
+// 任务控制页面 — 启动/停止/查看任务状态
+import { Button } from "std-widgets.slint";
+
+export component TasksPage inherits Rectangle {
+    width: 100%;
+    height: 100%;
+    background: #0d0d1a;
+
+    // 任务状态属性 (由 Rust 端更新)
+    in-out property <bool>   login-running: false;
+    in-out property <string> login-last-run: "--";
+    in-out property <string> login-next-run: "--";
+    in-out property <string> login-url: "gw.campus.edu.cn";
+
+    in-out property <bool>   monitor-running: false;
+    in-out property <string> monitor-last-check: "--";
+    in-out property <string> monitor-interval: "60s";
+
+    in-out property <bool>   logrotate-running: false;
+    in-out property <string> logrotate-size: "--";
+    in-out property <string> logrotate-last: "--";
+
+    // 回调
+    callback start-task(string);
+    callback stop-task(string);
+    callback restart-task(string);
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        // 标题行 + 全部启动
+        Rectangle {
+            height: 36px;
+            HorizontalLayout {
+                Text {
+                    text: "任务管理";
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #ebebf5;
+                }
+                Button {
+                    text: "▶ 全部启动";
+                    primary: true;
+                    clicked => { root.start-task("all"); }
+                }
+            }
+        }
+
+        // 任务 1: 自动登录
+        Rectangle {
+            background: #141428;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #ffffff10;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+
+                // Header: title + badge
+                Rectangle {
+                    height: 28px;
+                    HorizontalLayout {
+                        Text {
+                            text: "🌐 自动登录任务";
+                            font-size: 15px;
+                            font-weight: 600;
+                            color: #ebebf5;
+                        }
+                        Rectangle {
+                            background: root.login-running ? #34d39920 : #6b728020;
+                            border-radius: 10px;
+                            HorizontalLayout {
+                                padding-left: 6px; padding-right: 6px;
+                                padding-top: 4px; padding-bottom: 4px;
+                                spacing: 4px;
+                                Rectangle {
+                                    width: 6px; height: 6px;
+                                    border-radius: 3px;
+                                    background: root.login-running ? #34d399 : #6b7280;
+                                }
+                                Text {
+                                    text: root.login-running ? "运行中" : "已停止";
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: root.login-running ? #34d399 : #6b7280;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "目标 URL"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: root.login-url; font-size: 12px; color: #9898b0; font-family: "Cascadia Code"; }
+                    }
+                }
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "检查间隔"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: "300s"; font-size: 12px; color: #9898b0; font-family: "Cascadia Code"; }
+                    }
+                }
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "上次执行"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: root.login-last-run; font-size: 12px; color: #9898b0; font-family: "Cascadia Code"; }
+                    }
+                }
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "下次执行"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: root.login-next-run; font-size: 12px; color: #9898b0; font-family: "Cascadia Code"; }
+                    }
+                }
+
+                Rectangle {
+                    height: 32px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Button {
+                            text: "■ 停止";
+                            clicked => { root.stop-task("login"); }
+                        }
+                        Button {
+                            text: "↻ 重启";
+                            clicked => { root.restart-task("login"); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 任务 2: 状态监控
+        Rectangle {
+            background: #141428;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #ffffff10;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+
+                Rectangle {
+                    height: 28px;
+                    HorizontalLayout {
+                        Text {
+                            text: "🔵 状态监控任务";
+                            font-size: 15px;
+                            font-weight: 600;
+                            color: #ebebf5;
+                        }
+                        Rectangle {
+                            background: root.monitor-running ? #34d39920 : #6b728020;
+                            border-radius: 10px;
+                            HorizontalLayout {
+                                padding-left: 6px; padding-right: 6px;
+                                padding-top: 4px; padding-bottom: 4px;
+                                spacing: 4px;
+                                Rectangle {
+                                    width: 6px; height: 6px;
+                                    border-radius: 3px;
+                                    background: root.monitor-running ? #34d399 : #6b7280;
+                                }
+                                Text {
+                                    text: root.monitor-running ? "运行中" : "已停止";
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: root.monitor-running ? #34d399 : #6b7280;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "监控类型"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: "连接状态 + 认证有效期"; font-size: 12px; color: #9898b0; }
+                    }
+                }
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "检查间隔"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: root.monitor-interval; font-size: 12px; color: #9898b0; font-family: "Cascadia Code"; }
+                    }
+                }
+
+                Rectangle {
+                    height: 32px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Button {
+                            text: "■ 停止";
+                            clicked => { root.stop-task("monitor"); }
+                        }
+                        Button {
+                            text: "↻ 重启";
+                            clicked => { root.restart-task("monitor"); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 任务 3: 日志轮转
+        Rectangle {
+            background: #141428;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #ffffff10;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+
+                Rectangle {
+                    height: 28px;
+                    HorizontalLayout {
+                        Text {
+                            text: "📋 日志轮转任务";
+                            font-size: 15px;
+                            font-weight: 600;
+                            color: #ebebf5;
+                        }
+                        Rectangle {
+                            background: root.logrotate-running ? #34d39920 : #6b728020;
+                            border-radius: 10px;
+                            HorizontalLayout {
+                                padding-left: 6px; padding-right: 6px;
+                                padding-top: 4px; padding-bottom: 4px;
+                                spacing: 4px;
+                                Rectangle {
+                                    width: 6px; height: 6px;
+                                    border-radius: 3px;
+                                    background: root.logrotate-running ? #34d399 : #6b7280;
+                                }
+                                Text {
+                                    text: root.logrotate-running ? "运行中" : "已停止";
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: root.logrotate-running ? #34d399 : #6b7280;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "轮转策略"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: "每日 00:00 + 大小触发"; font-size: 12px; color: #9898b0; }
+                    }
+                }
+                Rectangle {
+                    height: 24px;
+                    HorizontalLayout {
+                        Text { text: "当前日志大小"; font-size: 12px; color: #6b6b80; width: 100px; }
+                        Text { text: root.logrotate-size; font-size: 12px; color: #9898b0; font-family: "Cascadia Code"; }
+                    }
+                }
+
+                Rectangle {
+                    height: 32px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Button {
+                            text: "▶ 启动";
+                            clicked => { root.start-task("logrotate"); }
+                        }
+                        Button {
+                            text: "↻ 立即轮转";
+                            clicked => { root.restart-task("logrotate"); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

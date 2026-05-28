@@ -9,8 +9,10 @@ use fs4::fs_std::FileExt;
 use auto_login::{
     task::{task_detection, task_stop},
 };
-use auto_login_common::config::ConfigFile;
-use auto_login::CONFIG;
+use campus_core::config::ConfigFile;
+use campus_core::elements::Elements;
+use campus_core::errors::CampusError;
+use auto_login::{CONFIG, ELEMENTS};
 
 #[tokio::main]
 async fn main() {
@@ -38,16 +40,14 @@ async fn main() {
         .set_cutmode_by_time("neco.log", MODE::DAY, 7, false)
         .set_formatter("{level} {time}: {message}\n");
 
-    let config_path = current_dir().unwrap().join("config.toml");
-    info!("配置文件路径: {}", config_path.display());
-    match ConfigFile::load_config(&config_path) {
-        Ok(conf) => {
-            let _ = CONFIG.set(conf);
-        },
-        Err(_) => {
-            return;
-        }
-    };
+    if let Err(e) = load_config() {
+        error!("配置加载失败：", e);
+        return;
+    }
+    if let Err(e) = load_elements() {
+        error!("页面元素配置加载失败：", e);
+        return;
+    }
 
     // 创建 CancellationToken 用于任务取消
     let cancel_token = CancellationToken::new();
@@ -65,7 +65,24 @@ async fn main() {
 
     // 等待网络检查任务完成（如果存在）
     if let Err(e) = net_check.await {
-        error!("网络检查任务异常退出: \n", e);
+        error!("网络检查任务异常退出: ", e);
     }
     info!("AutoLogin已退出");
+}
+
+
+fn load_config() -> Result<(), CampusError> {
+    let config_path = current_dir().unwrap().join("config.toml");
+    info!("配置文件路径: ", config_path.display());
+    let conf = ConfigFile::load_config(&config_path)?;
+    let _ = CONFIG.set(conf);
+    Ok(())
+}
+
+
+fn load_elements() -> Result<(), CampusError> {
+    let elements_path = current_dir().unwrap().join("elements.toml");
+    let elements = Elements::load_file(&elements_path)?;
+    let _ = ELEMENTS.set(elements);
+    Ok(())
 }

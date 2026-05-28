@@ -1,0 +1,23 @@
+[[service]]
+id = "_service_0"
+name = "校园网"
+
+[[service]]
+id = "_service_1"
+name = "中国移动"
+
+[[service]]
+id = "_service_2"
+name = "中国电信"
+
+[[service]]
+id = "_service_3"
+name = "中国联通"
+
+[page]
+login_button = "loginLink_div"
+username_tip = "username"
+username_input = "username"
+password_tip = "pwd_tip"
+password_input = "pwd"
+service_tip = "selectDisname"

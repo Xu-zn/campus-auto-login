@@ -1,16 +1,12 @@
 [package]
 name = "manager-gui"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 build = "build.rs"
 
 [dependencies]
-fs4 = {workspace = true}
-tokio = {workspace = true}
 slint = "1.12"
-
-[target.'cfg(windows)'.dependencies]
-ipmb = {workspace = true}
+campus-core = { path = "../campus-core" }
 
 [build-dependencies]
 embed-resource = {workspace = true}

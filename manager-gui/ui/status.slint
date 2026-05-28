@@ -1,0 +1,446 @@
+import { StatusSvgIcon } from "./svgicon.slint";
+
+// 运行状态页面 — 服务状态 + 运行时环境检测
+export component StatusPage inherits Rectangle {
+    background: #0d0d1a;
+
+    // ── 由 Rust 端刷新的属性 ──
+    in-out property <string> running-status-text: "检测中...";
+    in-out property <brush> status-dot-color: #6b7280;
+    in-out property <string> uptime: "--";
+
+    // ── 状态操作按钮 ──
+    in-out property <string> status-action-text: "启动";
+    in-out property <bool> status-action-enabled: false;
+    callback status-action-clicked();
+
+    // ── 环境检测 ──
+    in-out property <bool> config-toml-ok: false;
+    in-out property <string> config-toml-path: "";
+    in-out property <bool> elements-toml-ok: false;
+    in-out property <string> elements-toml-path: "";
+    in-out property <bool> chrome-ok: false;
+    in-out property <string> chrome-path: "";
+    in-out property <bool> chromedriver-ok: false;
+    in-out property <string> chromedriver-path: "";
+
+    // ── 环境操作回调 ──
+    callback env-action-config();
+    callback env-action-elements();
+    callback env-action-chrome();
+    callback env-action-driver();
+
+    // ── 操作进行中标记（按钮禁用+文字切换） ──
+    in-out property <bool> env-config-processing: false;
+    in-out property <bool> env-elements-processing: false;
+    in-out property <bool> env-chrome-processing: false;
+    in-out property <bool> env-driver-processing: false;
+
+    // ── 辅助 — 对勾/叉号 + 颜色 ──
+    // pure function check-icon(ok: bool) -> string {
+    //     if ok {
+    //         return "✓";
+    //     }
+    //     return "✗";
+    // }
+    pure function check-color(ok: bool) -> brush {
+        if ok {
+            return #34d399;
+        }
+        return #ff6584;
+    }
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 20px;
+
+        // ═══ 第一行：服务状态 + 运行时长 ═══
+        HorizontalLayout {
+            spacing: 16px;
+
+            // 服务状态卡片
+            Rectangle {
+                horizontal-stretch: 1;
+                background: #141428;
+                border-radius: 12px;
+                border-width: 1px;
+                border-color: root.status-dot-color == #34d399 ? #34d39930 : #ffffff10;
+                height: 100px;
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 8px;
+                    Text {
+                        text: "服务状态";
+                        font-size: 13px;
+                        color: #9898b0;
+                        font-weight: 500;
+                    }
+
+                    HorizontalLayout {
+
+                        VerticalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: 12px;
+                                height: 12px;
+                                border-radius: 6px;
+                                background: root.status-dot-color;
+                            }
+                        }
+
+                        Rectangle {
+                            width: 10px;
+                        }
+
+                        Text {
+                            text: root.running-status-text;
+                            font-size: 28px;
+                            font-weight: 700;
+                            color: #ebebf5;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        status-btn := Rectangle {
+                            width: 72px;
+                            height: 32px;
+                            border-radius: 8px;
+                            background: root.status-action-enabled ? #6c63ff : #ffffff08;
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: root.status-action-text;
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                    color: root.status-action-enabled ? #ffffff : #6b6b80;
+                                    horizontal-alignment: center;
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => {
+                                    root.status-action-clicked();
+                                }
+                                enabled: root.status-action-enabled;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 运行时长卡片
+            Rectangle {
+                horizontal-stretch: 1;
+                background: #141428;
+                border-radius: 12px;
+                border-width: 1px;
+                border-color: #ffffff10;
+                height: 100px;
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 8px;
+                    Text {
+                        text: "运行时长";
+                        font-size: 13px;
+                        color: #9898b0;
+                        font-weight: 500;
+                    }
+
+                    Text {
+                        text: root.uptime;
+                        font-size: 28px;
+                        font-weight: 700;
+                        color: #ebebf5;
+                    }
+                }
+            }
+        }
+
+        // ═══ 第二行：运行环境检测 ═══
+        Rectangle {
+            background: #141428;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #ffffff10;
+            vertical-stretch: 0;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 4px;
+
+                Text {
+                    text: "运行环境检测";
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: #ebebf5;
+                }
+
+                // 分割
+                Rectangle {
+                    height: 12px;
+                }
+
+                // ── config.toml ──
+                env-row := Rectangle {
+                    height: 36px;
+                    HorizontalLayout {
+                        Text {
+                            text: "📄 config.toml";
+                            font-size: 13px;
+                            color: #9898b0;
+                            width: 160px;
+                            vertical-alignment: center;
+                        }
+
+                        Rectangle {
+                            width: 80px;
+                            height: 36px;
+                            background: transparent;
+                            StatusSvgIcon {
+                                ok: root.config-toml-ok;
+                                width: 16px;
+                                height: 16px;
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                            }
+                        }
+
+                        Text {
+                            text: root.config-toml-path;
+                            font-size: 11px;
+                            color: #6b6b80;
+                            font-family: "Cascadia Code";
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        Rectangle { horizontal-stretch: 1; }
+
+                        if (!root.config-toml-ok): Rectangle {
+                            width: root.env-config-processing ? 80px : 64px;
+                            height: 28px;
+                            border-radius: 6px;
+                            background: #6c63ff18;
+                            border-width: 1px;
+                            border-color: #6c63ff40;
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: root.env-config-processing ? "处理中..." : "创建";
+                                    font-size: 12px;
+                                    color: root.env-config-processing ? #6b6b80 : #a78bfa;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                            TouchArea {
+                                clicked => { root.env-action-config(); }
+                                enabled: !root.env-config-processing;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: #ffffff08;
+                }
+
+                // ── elements.toml ──
+                Rectangle {
+                    height: 36px;
+                    HorizontalLayout {
+                        Text {
+                            text: "📄 elements.toml";
+                            font-size: 13px;
+                            color: #9898b0;
+                            width: 160px;
+                            vertical-alignment: center;
+                        }
+
+                        Rectangle {
+                            width: 80px;
+                            height: 36px;
+                            background: transparent;
+                            StatusSvgIcon {
+                                ok: root.elements-toml-ok;
+                                width: 16px;
+                                height: 16px;
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                            }
+                        }
+
+                        Text {
+                            text: root.elements-toml-path;
+                            font-size: 11px;
+                            color: #6b6b80;
+                            font-family: "Cascadia Code";
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        Rectangle { horizontal-stretch: 1; }
+
+                        if (!root.elements-toml-ok): Rectangle {
+                            width: root.env-elements-processing ? 80px : 64px;
+                            height: 28px;
+                            border-radius: 6px;
+                            background: #6c63ff18;
+                            border-width: 1px;
+                            border-color: #6c63ff40;
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: root.env-elements-processing ? "处理中..." : "创建";
+                                    font-size: 12px;
+                                    color: root.env-elements-processing ? #6b6b80 : #a78bfa;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                            TouchArea {
+                                clicked => { root.env-action-elements(); }
+                                enabled: !root.env-elements-processing;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: #ffffff08;
+                }
+
+                // ── Chrome ──
+                Rectangle {
+                    height: 36px;
+                    HorizontalLayout {
+                        Text {
+                            text: "🌐 Chrome 浏览器";
+                            font-size: 13px;
+                            color: #9898b0;
+                            width: 160px;
+                            vertical-alignment: center;
+                        }
+
+                        Rectangle {
+                            width: 80px;
+                            height: 36px;
+                            background: transparent;
+                            StatusSvgIcon {
+                                ok: root.chrome-ok;
+                                width: 16px;
+                                height: 16px;
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                            }
+                        }
+
+                        Text {
+                            text: root.chrome-path;
+                            font-size: 11px;
+                            color: #6b6b80;
+                            font-family: "Cascadia Code";
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        Rectangle { horizontal-stretch: 1; }
+
+                        if (!root.chrome-ok): Rectangle {
+                            width: root.env-chrome-processing ? 80px : 64px;
+                            height: 28px;
+                            border-radius: 6px;
+                            background: #6c63ff18;
+                            border-width: 1px;
+                            border-color: #6c63ff40;
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: root.env-chrome-processing ? "下载中..." : "下载";
+                                    font-size: 12px;
+                                    color: root.env-chrome-processing ? #6b6b80 : #a78bfa;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                            TouchArea {
+                                clicked => { root.env-action-chrome(); }
+                                enabled: !root.env-chrome-processing;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: #ffffff08;
+                }
+
+                // ── ChromeDriver ──
+                Rectangle {
+                    height: 36px;
+                    HorizontalLayout {
+                        Text {
+                            text: "🔧 ChromeDriver";
+                            font-size: 13px;
+                            color: #9898b0;
+                            width: 160px;
+                            vertical-alignment: center;
+                        }
+
+                        Rectangle {
+                            width: 80px;
+                            height: 36px;
+                            background: transparent;
+                            StatusSvgIcon {
+                                ok: root.chromedriver-ok;
+                                width: 16px;
+                                height: 16px;
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                            }
+                        }
+
+                        Text {
+                            text: root.chromedriver-path;
+                            font-size: 11px;
+                            color: #6b6b80;
+                            font-family: "Cascadia Code";
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        Rectangle { horizontal-stretch: 1; }
+
+                        if (!root.chromedriver-ok): Rectangle {
+                            width: root.env-driver-processing ? 80px : 64px;
+                            height: 28px;
+                            border-radius: 6px;
+                            background: #6c63ff18;
+                            border-width: 1px;
+                            border-color: #6c63ff40;
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: root.env-driver-processing ? "下载中..." : "下载";
+                                    font-size: 12px;
+                                    color: root.env-driver-processing ? #6b6b80 : #a78bfa;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                            TouchArea {
+                                clicked => { root.env-action-driver(); }
+                                enabled: !root.env-driver-processing;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 弹性占位 — 吸收剩余垂直空间，防止上方卡片被拉伸
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}

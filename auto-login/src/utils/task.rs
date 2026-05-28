@@ -3,41 +3,51 @@ use reqwest::Client;
 use tklog::{error, info, warn};
 use tokio::{task::JoinHandle, time::interval};
 
-
 use tokio_util::sync::CancellationToken;
 use crate::utils::driver::ChromeOperator;
 use crate::utils::login::to_login;
-use crate::CONFIG;
+use crate::{CONFIG, ELEMENTS};
 
-use auto_login_common::{ detect::detect_network_status, status::NetStatus };
-
-
+use campus_core::{ detect::detect_network_status, status::NetStatus };
 
 /// 循环检测网络连通性
 pub fn task_detection(cancel_token: CancellationToken) -> JoinHandle<()> {
-    let query = &CONFIG.get().unwrap().query;
+    let config = match CONFIG.get() {
+        Some(c) => c,
+        None => {
+            error!("检测任务启动失败: 配置未加载");
+            return tokio::spawn(async {});
+        }
+    };
+    let interval_secs = config.query.interval;
+    let query = config.query.clone();
     let client = Client::new();
+
     tokio::spawn(async move {
-        let mut detect_interval = interval(Duration::from_secs(query.interval));
+        let mut detect_interval = interval(Duration::from_secs(interval_secs));
         loop {
             tokio::select! {
-                // 优先处理取消信号
                 _ = cancel_token.cancelled() => {
                     info!("停止网络检测");
                     return;
                 }
-                // 定时检查网络状态
                 _ = detect_interval.tick() => {
-                    let cur_status = detect_network_status(query, &client).await.unwrap();
-                    println!("{}", cur_status.display());
+                    let cur_status = match detect_network_status(&query, &client).await {
+                        Ok(s) => s,
+                        Err(e) => {
+                            error!("网络检测异常: ", e);
+                            continue;
+                        }
+                    };
                     match cur_status {
                         NetStatus::Connected => info!("网络已连接"),
-                        NetStatus::Restricted => warn!("受限网络"),
+                        NetStatus::Restricted => {
+                            warn!("受限网络");
+                            net_connect().await;
+                        }
                         NetStatus::Disconnected => net_connect().await,
                     }
-
                 }
-
             }
         }
     })
@@ -57,10 +67,8 @@ pub fn task_stop() -> JoinHandle<()> {
 
         while let Ok(message) = receiver.recv(None) {
             match message.payload.as_str() {
-                "exit" => {
-                    break;
-                }
-                _ => { /*不想响应来历不明的信号*/ }
+                "exit" => break,
+                _ => { /* 忽略来历不明的信号 */ }
             }
         }
     })
@@ -68,22 +76,27 @@ pub fn task_stop() -> JoinHandle<()> {
 
 #[cfg(not(windows))]
 pub fn task_stop() -> JoinHandle<()> {
-    use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::net::UnixListener;
     use std::path::Path;
+
     let socket_path = "/tmp/campus_login.sock";
     if Path::new(socket_path).exists() {
-        std::fs::remove_file(socket_path).ok();
+        if let Err(e) = std::fs::remove_file(socket_path) {
+            warn!("清理残留 socket 失败: ", e);
+        }
     }
-    let listener = UnixListener::bind(socket_path);
-    let listener = match listener {
+
+    let listener = match UnixListener::bind(socket_path) {
         Ok(t) => t,
         Err(e) => {
-            error!("创建套接字失败：\n", e);
+            error!("创建套接字失败: ", e);
             return tokio::spawn(async {});
         }
     };
+
     tokio::spawn(async move {
+        use tokio::io::{AsyncBufReadExt, BufReader};
+
         let (stream, _) = match listener.accept().await {
             Ok(conn) => conn,
             Err(e) => {
@@ -97,43 +110,59 @@ pub fn task_stop() -> JoinHandle<()> {
             if line == "exit" {
                 info!("[core] 收到 exit，准备退出...");
                 break;
-            } else {
-                info!("[core] 忽略消息: ", line);
             }
+            info!("[core] 忽略消息: ", line);
         }
     })
 }
 
-
 async fn net_connect() {
-    let config = CONFIG.get().unwrap();
-    let driver_config = &config.driver.chrome_config;
-    let mut chrome = ChromeOperator(driver_config.clone().unwrap());
+    let config = match CONFIG.get() {
+        Some(c) => c,
+        None => {
+            error!("登录失败: 配置未加载");
+            return;
+        }
+    };
+    let elements = match ELEMENTS.get() {
+        Some(e) => e,
+        None => {
+            error!("登录失败: 页面元素配置未加载");
+            return;
+        }
+    };
+
+    let driver_config = match &config.driver.chrome_config {
+        Some(c) => c.clone(),
+        None => {
+            error!("登录失败: Chrome 配置缺失");
+            return;
+        }
+    };
+    let mut chrome = ChromeOperator::from_config(driver_config);
 
     let driver_command = match chrome.start_chromedriver() {
         Ok(t) => t,
         Err(e) => {
-            error!("启动ChromeDriver失败：\n", e);
+            error!("启动ChromeDriver失败: ", e);
             return;
         }
     };
     let mut driver_client = match chrome.start_chrome().await {
         Ok(t) => t,
         Err(e) => {
-            warn!("Chrome问题：\n", e);
+            warn!("Chrome问题: ", e);
             return;
         }
     };
 
-    let login_result = to_login(&config.login, &mut driver_client).await;
-    match login_result  {
+    match to_login(&config.login, &mut driver_client, elements).await {
         Ok(_) => info!("登录成功"),
-        Err(e) => error!("登录失败，错误信息：\n", e),
+        Err(e) => error!("登录失败，错误信息: ", e),
     }
 
-    match driver_client.quit().await {
-        Ok(_) => {},
-        Err(e) => error!("关闭Chrome失败：\n", e),
-    };
+    if let Err(e) = driver_client.quit().await {
+        error!("关闭Chrome失败: ", e);
+    }
     drop(driver_command);
 }

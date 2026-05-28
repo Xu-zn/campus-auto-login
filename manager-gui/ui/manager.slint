@@ -1,44 +1,137 @@
 import { Button, ScrollView } from "std-widgets.slint";
-import { SettingPage } from "./settings.slint";
+import { StatusPage } from "./status.slint";
 import { ConfigPage } from "./config.slint";
+import { LogsPage } from "./logs.slint";
 
+struct ConnectEntry {
+    url: string,
+    value: string,
+}
 
-
+// ─── 分割线 ───
 component DivideLine inherits Path {
-   width: 100%;
-   height: 1px;
-   stroke: #999999;
-   stroke-width: 1px;
-   MoveTo {
-       x: 0;
-       y: 0;
-   }
+    width: 100%;
+    height: 1px;
+    stroke: #ffffff12;
+    stroke-width: 1px;
 
-   LineTo {
-       x: 100%;
-       y: 0;
-   }
+    MoveTo {
+        x: 0;
+        y: 0;
+    }
+
+    LineTo {
+        x: 100%;
+        y: 0;
+    }
 }
 
 
+// ─── 导航 Tab 按钮 ───
+component NavTab inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in-out property <brush> active-color: #a78bfa;
+    callback clicked();
+
+    min-width: 80px;
+    height: 44px;
+    background: active ? #6c63ff18 : #00000000;
+    border-radius: 10px;
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        alignment: center;
+
+        Text {
+            text: label;
+            font-size: 13px;
+            font-weight: active ? 600 : 400;
+            color: active ? #ebebf5 : #9898b0;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    if active: Rectangle {
+        x: 0;
+        y: parent.height - 2px;
+        width: 100%;
+        height: 2px;
+        background: active-color;
+        border-radius: 1px;
+    }
+
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+
+// ─── 主窗口 ───
 export component ManagerWindow inherits Window {
-    height: 540px;
-    width: 300px;
-    title: "Manager-GUI";
-    default-font-family: "HarmonyOS Sans SC";
+    width: 960px;
+    height: 720px;
+    title: "Campus Auto-Login";
+    default-font-family: "Microsoft YaHei";
     icon: @image-url("../icons/neco.png");
+    background: #0d0d1a;
 
-    in-out property <int> running-status: 0;
-    in-out property <bool> network-connective-status: false;
+    // ═══ 运行状态 ═══
+    in-out property <int> running-status: 0;  // 0=待检测 1=运行中 2=未运行
+    in-out property <string> uptime: "--";
 
+    // ═══ 环境检测 ═══
+    in-out property <bool> config-toml-ok: false;
+    in-out property <string> config-toml-path: "";
+    in-out property <bool> elements-toml-ok: false;
+    in-out property <string> elements-toml-path: "";
+    in-out property <bool> chrome-ok: false;
+    in-out property <string> chrome-path: "";
+    in-out property <bool> chromedriver-ok: false;
+    in-out property <string> chromedriver-path: "";
+
+    // ── 环境操作进行中标记 ──
+    in-out property <bool> env-config-processing: false;
+    in-out property <bool> env-elements-processing: false;
+    in-out property <bool> env-chrome-processing: false;
+    in-out property <bool> env-driver-processing: false;
+
+    // ═══ 配置管理 ═══
+    in-out property <string> config-toml-text: "";
+    in-out property <string> config-login-username: "";
+    in-out property <string> config-login-password: "";
+    in-out property <string> config-login-service: "_service_0";
+    in-out property <[string]> config-service-names;
+    in-out property <int> config-service-current-index: 0;
+    in-out property <string> config-login-eportal: "http://eportal.hhu.edu.cn";
+    in-out property <string> config-login-timout: "3";
+    in-out property <string> config-query-interval: "15";
+    in-out property <[ConnectEntry]> config-connect-entries;
+    in-out property <string> config-driver-port: "18888";
+    in-out property <string> config-driver-path: "chromedriver-win64/chromedriver.exe";
+    in-out property <string> config-browser-path: "chrome-win64/chrome.exe";
+
+    // ═══ 日志 ═══
+    in-out property <string> log-content: "";
+    in-out property <int> log-line-count: 0;
+    in-out property <int> log-total-count: 0;
+
+    // ═══ 页面索引 ═══
     property <int> current-index: 0;
 
+    // ── 纯函数 ──
     pure function button-text() -> string {
         if (running-status == 1) {
             return "停止";
         }
         return "开始";
     }
+
     pure function status-text() -> string {
         if (running-status == 0) {
             return "待检测";
@@ -51,171 +144,284 @@ export component ManagerWindow inherits Window {
         }
         return "";
     }
+
     pure function status-color() -> brush {
         if (running-status == 1) {
-            return rgba(0, 192, 0, 1);
+            return #34d399;
         }
         if (running-status == 2) {
-            return rgba(192, 0, 0, 1);
+            return #ff6584;
         }
-        return rgba(192, 192, 192, 1);
+        return #6b7280;
     }
-    
-    pure function activate-bgcolor(self-index: int) -> brush {
-        if (self-index == root.current-index) {
-            return rgba(255, 255, 255, 0.2);
+
+    pure function status-action-text() -> string {
+        if (running-status == 0) {
+            return "—";
         }
-        return rgba(255, 255, 255, 0);
+        if (running-status == 1) {
+            return "停止";
+        }
+        if (running-status == 2) {
+            return "启动";
+        }
+        return "";
     }
+
+    pure function status-action-enabled() -> bool {
+        return running-status != 0;
+    }
+
+    // ── 回调 ──
     callback check-running-status(int);
     callback update-running-status(int);
+    callback check-environment();
+    callback save-config();          // 由 config-action 变化触发
+    callback load-config();          // 由 config-action 变化触发
+    callback refresh-logs();
+    callback clear-logs();
 
+    // ── 环境操作回调 ──
+    callback env-create-config();
+    callback env-create-elements();
+    callback env-download-chrome();
+    callback env-download-driver();
+
+    // ── config-action: ConfigPage 设 "load"/"save"，changed 回调触发 ──
+    in-out property <string> config-action: "";
+    changed config-action => {
+        if (root.config-action == "save") {
+            root.save-config();
+        }
+        if (root.config-action == "load") {
+            root.load-config();
+        }
+        root.config-action = "";
+    }
+
+    // ── connect-action: ConfigPage 设 "add" / "del-N" → Rust 处理 ──
+    callback connect-edit(string);
+    in-out property <string> connect-action: "";
+    changed connect-action => {
+        if (root.connect-action != "") {
+            root.connect-edit(root.connect-action);
+            root.connect-action = "";
+        }
+    }
+
+    // ── 定时器：刷新状态 + 环境检测 ──
     timer := Timer {
         interval: 500ms;
         running: true;
         triggered() => {
             check-running-status(running-status);
+            check-environment();
         }
     }
 
+    // ═══════ 根布局 ═══════
+
     VerticalLayout {
+        // ── 顶部导航栏 ──
+        Rectangle {
+            height: 56px;
+            background: #0e0e1a;
+            HorizontalLayout {
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                spacing: 8px;
 
-        GridLayout {
-            height: 3rem;
-            Row {
+                // 品牌区域
                 Rectangle {
-                    width: 50%;
-                }
-
-                Rectangle {
-                    background: activate-bgcolor(self-index);
-                    property <int> self-index: 0;
-                    property <bool> is-active: root.current-index == self-index;
-
-                    TouchArea {
-
-                        mouse-cursor: pointer;
-                        Path {
-                            width: 1.8rem;
-                            height: 3rem;
-                            fill: rgba(32, 192, 192, 1);
-                                                    commands: "M798.72 817.152c-57.344-10.24-102.4-59.392-102.4-120.832 0-67.584 55.296-122.88 122.88-122.88s122.88 55.296 122.88 122.88c0 61.44-45.056 110.592-102.4 120.832v114.688c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-114.688z m-614.4 0c-57.344-10.24-102.4-59.392-102.4-120.832 0-67.584 55.296-122.88 122.88-122.88s122.88 55.296 122.88 122.88c0 61.44-45.056 110.592-102.4 120.832v114.688c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-114.688z m307.2-610.304c-57.344 10.24-102.4 59.392-102.4 120.832 0 67.584 55.296 122.88 122.88 122.88s122.88-55.296 122.88-122.88c0-61.44-45.056-110.592-102.4-120.832v-114.688c0-12.288-8.192-20.48-20.48-20.48s-20.48 8.192-20.48 20.48v114.688z m-307.2-114.688c0-12.288 8.192-20.48 20.48-20.48s20.48 8.192 20.48 20.48v409.6c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-409.6z m614.4 0c0-12.288 8.192-20.48 20.48-20.48s20.48 8.192 20.48 20.48v409.6c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-409.6z m-286.72 317.44c-45.056 0-81.92-36.864-81.92-81.92s36.864-81.92 81.92-81.92 81.92 36.864 81.92 81.92-36.864 81.92-81.92 81.92z m-20.48 112.64c0-12.288 8.192-20.48 20.48-20.48s20.48 8.192 20.48 20.48v409.6c0 12.288-8.192 20.48-20.48 20.48s-20.48-8.192-20.48-20.48v-409.6z m-286.72 256c45.056 0 81.92-36.864 81.92-81.92s-36.864-81.92-81.92-81.92-81.92 36.864-81.92 81.92 36.864 81.92 81.92 81.92z m614.4 0c45.056 0 81.92-36.864 81.92-81.92s-36.864-81.92-81.92-81.92-81.92 36.864-81.92 81.92 36.864 81.92 81.92 81.92z";
-
-                        }
-                        clicked => {
-                            root.current-index = 0;
-                        }
-                    }
-                }
-
-                Rectangle {
-                    background: activate-bgcolor(self-index);
-                    property <int> self-index: 1;
-                    property <bool> is-active: root.current-index == self-index;
-                    TouchArea {
-                        mouse-cursor: pointer;
-                        Path {
-                            width: 1.8rem;
-                            height: 3rem;
-                            fill: rgba(32, 192, 192, 1);
-                            commands: "M594.466 454.588c0-37.137 23.484-68.813 56.252-81.374-7.646-30.584-19.66-59.529-35.499-86.29-32.222 14.2-70.997 8.193-97.212-18.022-26.214-26.214-32.221-64.99-18.022-97.211a363.318 363.318 0 0 0-86.289-35.499c-12.561 32.768-44.237 56.252-81.374 56.252-37.137 0-68.813-23.484-81.374-56.252-30.583 7.646-59.528 19.66-86.289 35.499 14.2 32.222 8.192 70.997-18.022 97.211s-64.99 32.222-97.212 18.023c-15.838 26.76-27.853 55.705-35.499 86.289 32.768 12.56 56.252 44.237 56.252 81.374 0 37.137-23.484 68.813-56.252 81.374 7.646 30.583 19.661 59.528 35.5 86.289 32.22-14.2 70.996-8.192 97.21 18.022 26.215 26.214 32.223 64.99 18.023 97.212 26.76 15.838 55.706 27.853 86.29 35.498 12.56-32.768 44.236-56.251 81.373-56.251 37.137 0 68.813 23.483 81.374 56.251 30.583-7.645 59.529-19.66 86.29-35.498-14.2-32.222-8.193-70.998 18.021-97.212 26.215-26.214 64.99-32.222 97.212-18.022 15.838-26.76 27.853-55.706 35.499-86.29-32.768-12.56-56.252-43.69-56.252-81.373z m-262.144 87.381c-48.06 0-87.381-39.322-87.381-87.381s39.321-87.382 87.381-87.382 87.381 39.322 87.381 87.382-39.321 87.381-87.38 87.381z m359.356-369.732h318.396v80.281H691.678z m0 323.31h318.396v80.282H691.678zM175.582 818.86h834.492v80.281H175.582z";
-
-                        }
-                        clicked => {
-                            root.current-index = 1;
-                        }
-                    }
-                }
-
-            }
-
-
-        }
-
-        DivideLine {}
-
-        ScrollView {
-            padding-left: 10px;
-            padding-right: 10px;
-            width: parent.width;
-            height: parent.height - 6rem - 2px;
-            if (root.current-index == 0): ConfigPage {}
-
-            if (root.current-index == 1): SettingPage {}
-
-        }
-
-        DivideLine {}
-        property <length> button_width: 4rem;
-        GridLayout {
-            padding-left: 10px;
-            padding-right: 10px;
-            height: 3rem;
-            Row {
-                re := Rectangle {
-                    width: (root.width - 20px - button_width);
-                    height: 3rem;
+                    width: 160px;
+                    height: 40px;
                     HorizontalLayout {
-                        spacing: 1px;
-                        Text {
-                            height: re.height;
-                            width: 4rem;
-                            vertical-alignment: center;
-                            horizontal-alignment: left;
-                            text: status-text();
-                        }
-
+                        spacing: 10px;
                         Rectangle {
-                            height: re.height;
-                            width: 0.8rem;
-                            Path {
-                                width: 0.8rem;
-                                height: 0.8rem;
-                                fill: status-color();
-                                MoveTo {
-                                    x: 50%;
-                                    y: 0%;
-                                }
-
-                                ArcTo {
-                                    radius-x: 50%;
-                                    radius-y: 50%;
-                                    x: 50%;
-                                    y: 100%;
-                                }
-
-                                ArcTo {
-                                    radius-x: 50%;
-                                    radius-y: 50%;
-                                    x: 50%;
-                                    y: 0%;
+                            width: 28px;
+                            height: 40px;
+                            border-radius: 6px;
+                            VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    source: @image-url("../icons/neco.png");
+                                    width: parent.width;
+                                    height: parent.width;
+                                    image-fit: contain;
                                 }
                             }
                         }
+
+                        Text {
+                            text: "Campus Login";
+                            font-size: 14px;
+                            font-weight: 700;
+                            color: #ebebf5;
+                            vertical-alignment: center;
+                        }
                     }
                 }
 
                 Rectangle {
+                    width: 1px;
+                    height: 24px;
+                    background: #ffffff10;
+                }
 
-                    width: button_width;
-                    height: 3rem;
-                    Button {
-                        primary: true;
-                        height: parent.height / 1.3;
-                        width: parent.width;
-                        text: button-text();
-//                        Text {
-//                            height: parent.height;
-//                            width: parent.width;
-//                            vertical-alignment: center;
-//                            horizontal-alignment: right;
-//                            text: button-text();
-//                        }
+                NavTab {
+                    label: "运行状态";
+                    active: root.current-index == 0;
+                    active-color: #34d399;
+                    clicked => {
+                        root.current-index = 0;
+                    }
+                }
 
-                        enabled: running-status != 0;
-                        clicked => {
-                            update-running-status(running-status);
+                NavTab {
+                    label: "配置管理";
+                    active: root.current-index == 1;
+                    active-color: #a78bfa;
+                    clicked => {
+                        root.current-index = 1;
+                    }
+                }
+
+                NavTab {
+                    label: "日志查看";
+                    active: root.current-index == 2;
+                    active-color: #60a5fa;
+                    clicked => {
+                        root.current-index = 2;
+                    }
+                }
+            }
+        }
+
+        DivideLine { }
+
+        // ── 内容区域 (Tab 切换) ──
+        Rectangle {
+            width: 100%;
+            vertical-stretch: 1;
+
+            if (root.current-index == 0): StatusPage {
+                running-status-text: status-text();
+                status-dot-color: status-color();
+                uptime: root.uptime;
+
+                status-action-text: status-action-text();
+                status-action-enabled: status-action-enabled();
+                status-action-clicked => {
+                    root.update-running-status(running-status);
+                }
+
+                env-action-config => { root.env-create-config(); }
+                env-action-elements => { root.env-create-elements(); }
+                env-action-chrome => { root.env-download-chrome(); }
+                env-action-driver => { root.env-download-driver(); }
+
+                env-config-processing: root.env-config-processing;
+                env-elements-processing: root.env-elements-processing;
+                env-chrome-processing: root.env-chrome-processing;
+                env-driver-processing: root.env-driver-processing;
+
+                config-toml-ok: root.config-toml-ok;
+                config-toml-path: root.config-toml-path;
+                elements-toml-ok: root.elements-toml-ok;
+                elements-toml-path: root.elements-toml-path;
+                chrome-ok: root.chrome-ok;
+                chrome-path: root.chrome-path;
+                chromedriver-ok: root.chromedriver-ok;
+                chromedriver-path: root.chromedriver-path;
+            }
+
+            if (root.current-index == 1): ConfigPage {
+                config-toml-text <=> root.config-toml-text;
+
+                login-username <=> root.config-login-username;
+                login-password <=> root.config-login-password;
+                login-service <=> root.config-login-service;
+                service-names <=> root.config-service-names;
+                service-current-index <=> root.config-service-current-index;
+                login-eportal <=> root.config-login-eportal;
+                login-timout <=> root.config-login-timout;
+                query-interval <=> root.config-query-interval;
+                connect-entries <=> root.config-connect-entries;
+                driver-port <=> root.config-driver-port;
+                driver-path <=> root.config-driver-path;
+                browser-path <=> root.config-browser-path;
+
+                config-action <=> root.config-action;
+                connect-action <=> root.connect-action;
+                config-exists <=> root.config-toml-ok;
+            }
+
+            if (root.current-index == 2): LogsPage {
+                log-content: root.log-content;
+                log-line-count: root.log-line-count;
+                log-total-count: root.log-total-count;
+                refresh-logs() => {
+                    root.refresh-logs();
+                }
+                clear-logs() => {
+                    root.clear-logs();
+                }
+            }
+        }
+
+        DivideLine { }
+
+        // ── 底部状态栏 ──
+        Rectangle {
+            height: 52px;
+            background: #0e0e1a;
+            HorizontalLayout {
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                spacing: 12px;
+
+                // 状态指示
+                Rectangle {
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: 10px;
+                                height: 10px;
+                                border-radius: 5px;
+                                background: status-color();
+                            }
                         }
+                        Rectangle {
+                            width: 10px;
+                        }
+                        Text {
+                            text: status-text();
+                            font-size: 13px;
+                            font-weight: 600;
+                            color: #ebebf5;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: 100%;
+                }
+
+                Button {
+                    text: button-text();
+                    primary: true;
+                    width: 100px;
+                    height: 32px;
+                    enabled: running-status != 0;
+                    clicked => {
+                        update-running-status(running-status);
                     }
                 }
             }

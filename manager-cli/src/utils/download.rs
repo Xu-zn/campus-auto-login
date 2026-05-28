@@ -17,7 +17,7 @@ impl UseChrome {
     pub fn generate_download_url(self: &Self, platform: &str) -> String {
         let cur = current_dir().unwrap();
         let version_filepath = cur.join(".chrome-version");
-        let version = read_to_string(version_filepath).unwrap_or("139.0.7258.138".to_string());
+        let version = read_to_string(version_filepath).unwrap_or("123.0.6307.0".to_string());
 
         match self {
             UseChrome::Chrome => {

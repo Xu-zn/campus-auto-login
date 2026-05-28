@@ -16,16 +16,20 @@
 
 6. 停止运行, `./manager-cli stop`
 
+7. GUI已开发，上面的都可以通过GUI来完成
+
 ## 配置文件
 
 ```toml
 [login.info]
 username = "" # 学号
 password = "" # 密码
-service = "南京移动" # 服务：校园网，南京移动、常州电信、常州联通
+service = "_service_0" # 服务
+# 对应的是下拉框中服务的ID，河海大学的最后一位对应如下：
+# 0: 校园网，1: 中国移动，2: 中国电信，3: 中国联通
 
 [login.config]
-eportal = "http://eportal.hhu.edu.cn" # 登陆页面，不用改
+eportal = "http://eportal.hhu.edu.cn" # 登陆页面，河海的不用改
 timout = 3 # 等待页面超时时间，单位秒
 
 [query]
@@ -52,7 +56,7 @@ browser_path = "chrome-linux64/chrome" # chrome的路径，支持绝对路径以
 - [x] 检测网络连接状态及自动登陆
 - [x] 管理端GUI
   - [x] 管理端操作auto-login
-  - [ ] 管理端修改配置文件
+  - [x] 管理端修改配置文件
   - [ ] 管理端设置开机自启的计划任务
 - [ ] 使用miniblink替代chrome
 
@@ -62,4 +66,6 @@ browser_path = "chrome-linux64/chrome" # chrome的路径，支持绝对路径以
 2. 建议**插网线**
 3. 不要使用高版本的chrome，会有问题，预设的版本号在`.chrome-version`中定义
 
-## 开机自启设置
+## 其他
+
+感谢DeepSeek V4 Pro、ChatGPT 5.4以及CodeBuddy，没有它们，GUI一直不想写

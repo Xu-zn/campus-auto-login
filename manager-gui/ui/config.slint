@@ -1,7 +1,681 @@
+// 配置管理页面 — 表单 + TOML 源码双模式
+import {
+    Button,
+    ScrollView,
+    LineEdit,
+    TextEdit,
+    ComboBox,
+} from "std-widgets.slint";
+import { DeleteIcon } from "./svgicon.slint";
+
+
+struct ConnectEntry {
+    url: string,
+    value: string,
+}
+
 export component ConfigPage inherits Rectangle {
     width: 100%;
     height: 100%;
-    Text {
-            text: "连接设置";
+    background: #0d0d1a;
+
+    in-out property <string> config-toml-text: "";
+
+    in-out property <string> login-username: "";
+    in-out property <string> login-password: "";
+    in-out property <string> login-service: "_service_0";
+
+    // ── 服务商下拉选项 (显示名称) ──
+    in-out property <[string]> service-names;
+    in-out property <int> service-current-index: 0;
+
+    in-out property <string> login-eportal: "http://eportal.hhu.edu.cn";
+    in-out property <string> login-timout: "3";
+
+    in-out property <string> query-interval: "15";
+    in-out property <[ConnectEntry]> connect-entries;
+
+    in-out property <string> driver-port: "18888";
+    in-out property <string> driver-path: "chromedriver-win64/chromedriver.exe";
+    in-out property <string> browser-path: "chrome-win64/chrome.exe";
+
+    in-out property <string> config-action: "";
+    in-out property <string> connect-action: "";
+
+    in-out property <bool> edit-raw-toml: false;
+
+    // ── 配置文件状态 ──
+    in-out property <bool> config-exists: false;
+
+    VerticalLayout {
+        // ── 标题栏 (固定) ──
+        Rectangle {
+            height: 88px;
+            background: #0d0d1a;
+            VerticalLayout {
+                // 第一行：标题
+                Rectangle {
+                    height: 44px;
+                    HorizontalLayout {
+                        padding-left: 24px;
+                        Text {
+                            text: "配置管理";
+                            font-size: 18px;
+                            font-weight: 600;
+                            color: #ebebf5;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                // 第二行：模式切换 + 操作按钮
+                Rectangle {
+                    height: 44px;
+                    HorizontalLayout {
+                        padding-left: 24px;
+                        padding-right: 24px;
+                        spacing: 8px;
+
+                        // 模式切换
+                        Rectangle {
+                            background: #1a1a30;
+                            border-radius: 8px;
+                            width: 106px;
+                            height: 32px;
+                            HorizontalLayout {
+                                padding: 2px;
+                                spacing: 0px;
+                                Rectangle {
+                                    background: root.edit-raw-toml ? #00000000 : #6c63ff30;
+                                    border-radius: 6px;
+                                    width: 50px;
+                                    Text {
+                                        text: "表单";
+                                        font-size: 11px;
+                                        font-weight: 500;
+                                        color: root.edit-raw-toml ? #9898b0 : #a78bfa;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+
+                                    TouchArea {
+                                        clicked => {
+                                            root.edit-raw-toml = false;
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    background: root.edit-raw-toml ? #6c63ff30 : #00000000;
+                                    border-radius: 6px;
+                                    width: 50px;
+                                    Text {
+                                        text: "源码";
+                                        font-size: 11px;
+                                        font-weight: 500;
+                                        color: root.edit-raw-toml ? #a78bfa : #9898b0;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+
+                                    TouchArea {
+                                        clicked => {
+                                            root.edit-raw-toml = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 弹性空白
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        Button {
+                            text: "加载";
+                            height: 32px;
+                            enabled: root.config-exists;
+                            clicked => {
+                                root.config-action = "load";
+                            }
+                        }
+
+                        Button {
+                            text: "保存";
+                            height: 32px;
+                            primary: true;
+                            enabled: root.config-exists;
+                            clicked => {
+                                root.config-action = "save";
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        // ── 内容区 (TOML 编辑器模式) ──
+        if root.edit-raw-toml: Rectangle {
+            vertical-stretch: 1;
+            background: #141428;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #ffffff10;
+            VerticalLayout {
+                Rectangle {
+                    height: 32px;
+                    background: #1a1a30;
+                    HorizontalLayout {
+                        padding: 8px;
+                        Text {
+                            text: "config.toml";
+                            font-size: 11px;
+                            color: #6b6b80;
+                            font-family: "Cascadia Code";
+                        }
+                    }
+                }
+
+                TextEdit {
+                    text <=> root.config-toml-text;
+                    font-size: 12px;
+                    font-family: "Cascadia Code";
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        // ════════════════════════════════════
+        //   表单模式 — ScrollView (唯一滚动层)
+        // ════════════════════════════════════
+        if !root.edit-raw-toml: ScrollView {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-bottom: 24px;
+                spacing: 16px;
+
+                // ══ 配置文件不存在时的提示横幅 ══
+                if !root.config-exists: Rectangle {
+                    background: #f59e0b15;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #f59e0b30;
+                    height: 56px;
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            Text {
+                                text: "⚠";
+                                font-size: 20px;
+                                color: #f59e0b;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                text: "配置文件 (config.toml) 不存在";
+                                font-size: 13px;
+                                color: #fbbf24;
+                                vertical-alignment: center;
+                            }
+
+                            Rectangle {
+                                horizontal-stretch: 1;
+                            }
+
+                            Button {
+                                text: "创建配置";
+                                primary: true;
+                                height: 32px;
+                                clicked => {
+                                    root.config-action = "save";
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // === [login.info] ===
+                Rectangle {
+                    background: #141428;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #ffffff10;
+                    height: 174px;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: "[login.info] 登录信息";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: #a78bfa;
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "用户名";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    LineEdit {
+                                        text <=> root.login-username;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "密码";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    LineEdit {
+                                        text <=> root.login-password;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        input-type: password;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "服务商";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    width: 140px;
+                                    ComboBox {
+                                        width: 100%;
+                                        height: 100%;
+                                        model: root.service-names;
+                                        current-index <=> root.service-current-index;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // === [login.config] ===
+                Rectangle {
+                    background: #141428;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #ffffff10;
+                    height: 145px;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: "[login.config] 页面配置";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: #a78bfa;
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "门户地址";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    LineEdit {
+                                        text <=> root.login-eportal;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "超时(s)";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    width: 120px;
+                                    LineEdit {
+                                        text <=> root.login-timout;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // === [query] 网络检测 (内容驱动高度) ===
+                Rectangle {
+                    background: #141428;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #ffffff10;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: "[query] 网络检测";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: #a78bfa;
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "检测间隔(s)";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    width: 120px;
+                                    LineEdit {
+                                        text <=> root.query-interval;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+
+                        // 连接列表标题栏
+                        Rectangle {
+                            height: 30px;
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Text {
+                                    text: "连接检测列表";
+                                    font-size: 12px;
+                                    color: #6b6b80;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    horizontal-stretch: 1;
+                                }
+
+                                Rectangle {
+                                    width: 72px;
+                                    height: 26px;
+                                    background: #6c63ff20;
+                                    border-radius: 6px;
+                                    Text {
+                                        text: "+ 添加";
+                                        font-size: 11px;
+                                        color: #a78bfa;
+                                        font-weight: 500;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+
+                                    TouchArea {
+                                        clicked => {
+                                            root.connect-action = "add";
+                                        }
+                                    }
+
+                                    visible: root.config-exists;
+                                }
+                            }
+                        }
+
+                        // 动态条目列表 (驱动卡片高度)
+                        for entry[i] in root.connect-entries: Rectangle {
+                            height: 32px;
+                            HorizontalLayout {
+                                spacing: 4px;
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 4px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    LineEdit {
+                                        text: entry.url;
+                                        font-size: 11px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                        edited => {
+                                            root.connect-action = "url:" + i + ":" + self.text;
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 4px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    width: 120px;
+                                    LineEdit {
+                                        text: entry.value;
+                                        font-size: 11px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                        edited => {
+                                            root.connect-action = "val:" + i + ":" + self.text;
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 28px;
+                                    height: 28px;
+                                    background: #ff658418;
+                                    border-radius: 4px;
+                                    DeleteIcon {
+                                        width: 14px;
+                                        height: 14px;
+                                        icon-color: #ff6584;
+                                        x: (parent.width - self.width) / 2;
+                                        y: (parent.height - self.height) / 2;
+                                    }
+
+                                    TouchArea {
+                                        clicked => {
+                                            root.connect-action = "del-" + i;
+                                        }
+                                    }
+
+                                    visible: root.config-exists;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // === [driver.chrome] ===
+                Rectangle {
+                    background: #141428;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #ffffff10;
+                    height: 170px;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: "[driver.chrome] 浏览器驱动";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: #a78bfa;
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "端口";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    width: 120px;
+                                    LineEdit {
+                                        text <=> root.driver-port;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "Driver 路径";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    LineEdit {
+                                        text <=> root.driver-path;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            HorizontalLayout {
+                                Text {
+                                    text: "浏览器路径";
+                                    font-size: 13px;
+                                    color: #9898b0;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    background: #0d0d1a;
+                                    border-radius: 6px;
+                                    border-width: 1px;
+                                    border-color: #ffffff10;
+                                    LineEdit {
+                                        text <=> root.browser-path;
+                                        font-size: 13px;
+                                        font-family: "Cascadia Code";
+                                        width: 100%;
+                                        height: 100%;
+                                        enabled: root.config-exists;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

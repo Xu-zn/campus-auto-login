@@ -2,7 +2,7 @@ use tokio::process::Command;
 use std::path::PathBuf;
 use anyhow::Result;
 use thirtyfour::{ChromiumLikeCapabilities, DesiredCapabilities, WebDriver};
-use auto_login_common::config::ChromeConfig;
+use campus_core::config::ChromeConfig;
 
 pub struct ChromeOperator (pub ChromeConfig);
 

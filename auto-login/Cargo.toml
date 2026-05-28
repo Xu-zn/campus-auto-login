@@ -15,7 +15,8 @@ tokio = {workspace = true}
 tokio-util = {workspace = true}
 fs4 = {workspace = true}
 anyhow = {workspace = true}
-auto-login-common = {path = "../auto-login-common"}
+thiserror = {workspace = true}
+campus-core = {path = "../campus-core"}
 [target.'cfg(windows)'.dependencies]
 ipmb = {workspace = true}
 

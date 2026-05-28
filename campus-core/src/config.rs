@@ -1,24 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{path::Path, fs::{write, read_to_string, create_dir_all}};
-use anyhow::Result;
-// use 
+use crate::errors::CampusError;
 
-/// 网络服务类型
-#[derive(Deserialize, Serialize)]
-pub enum NetServiceType {
-    /// 校园网
-    #[serde(rename = "校园网")]
-    CampusNet,
-    /// 南京移动
-    #[serde(rename = "南京移动")]
-    NanjingMobile,
-    /// 常州电信
-    #[serde(rename = "常州电信")]
-    ChangzhouTelecom,
-    /// 常州联通
-    #[serde(rename = "常州联通")]
-    ChangzhouUnion,
-}
 
 #[derive(Deserialize, Serialize)]
 pub enum DriverType {
@@ -36,15 +19,15 @@ pub struct LoginInfo {
     /// 密码
     pub password: String,
     /// 登录服务
-    pub service: NetServiceType,
+    pub service: String,
 }
 
 impl LoginInfo {
     fn default() -> Self {
         Self { 
-            username: String::from("学号"), 
-            password: String::from("密码"), 
-            service: NetServiceType::CampusNet, 
+            username: String::new(), 
+            password: String::new(), 
+            service: String::from("_service_0"), 
         }
     }
 }
@@ -55,7 +38,7 @@ impl LoginInfo {
 pub struct LoginConfig {
     /// 门户地址
     pub eportal: String,
-    /// 页面加载的等待时间
+    /// 页面加载的等待时间（秒）
     pub timout: u64,
 }
 
@@ -63,7 +46,7 @@ impl LoginConfig {
     fn default() -> Self {
         Self {
             eportal: String::from("http://eportal.hhu.edu.cn"),
-            timout: 3
+            timout: 3,
         }
     }
 }
@@ -84,7 +67,7 @@ impl Login {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename="connection")]
 pub struct Connection {
     pub url: String,
@@ -93,7 +76,7 @@ pub struct Connection {
 }
 
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename="query")]
 pub struct QueryConfig {
     pub connect: Vec<Connection>,
@@ -130,16 +113,7 @@ pub struct ChromeConfig {
 
 impl ChromeConfig {
     pub fn default() -> Self {
-        let os = std::env::consts::OS;
-        let arch = std::env::consts::ARCH;
-
-        let platform = match (os, arch) {
-            ("windows", "x86") => "win32",
-            ("windows", "x86_64") => "win64",
-            ("linux", "x86_64") => "linux64",
-            ("windows", "aarch64") => "win64",
-            _ => panic!("Unsupported platform: {}-{}", os, arch),
-        };
+        let platform = crate::platform::detect_platform();
 
         #[cfg(windows)]
         return Self {
@@ -211,56 +185,38 @@ impl ConfigFile {
         }
     }
 
-    pub fn save_config(self: &Self, target_dir: &Path) -> Result<()> {
+    pub fn save_config(&self, target_dir: &Path) -> Result<(), CampusError> {
         if !target_dir.exists() {
-            create_dir_all(&target_dir)?;
+            create_dir_all(target_dir)?;
         }
         let target_file = target_dir.join("config.toml");
-        let config_text = toml::to_string_pretty::<Self>(self)?;
-        let _ = write(&target_file, config_text)?;
+        let config_text = toml::to_string_pretty(self)
+            .map_err(CampusError::ConfigSerialize)?;
+        write(&target_file, config_text)?;
         Ok(())
     }
 
-    pub fn create_default_config(target_dir: &Path) -> Result<()> {
+    pub fn create_default_config(target_dir: &Path) -> Result<(), CampusError> {
         let default_config = Self::default();
-        default_config.save_config(target_dir)?;
-        Ok(())
+        default_config.save_config(target_dir)
     }
 
-    pub fn load_config(from_path: &Path) -> Result<Self> {
-        let text = read_to_string(from_path)?;
-        let config: ConfigFile = toml::from_str(&text)?;
+    pub fn load_config(from_path: &Path) -> Result<Self, CampusError> {
+        let text = match read_to_string(from_path) {
+            Ok(t) => t,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(CampusError::ConfigNotFound(from_path.display().to_string()));
+            }
+            Err(e) => return Err(e.into()),
+        };
+        let config: ConfigFile = toml::from_str(&text)
+            .map_err(CampusError::ConfigParse)?;
         Ok(config)
     }
 }
 
 
-impl NetServiceType {
-    pub fn to_display(self: &Self) -> &str {
-        match self {
-            NetServiceType::CampusNet => "校园网",
-            NetServiceType::NanjingMobile => "南京移动",
-            NetServiceType::ChangzhouTelecom => "常州电信",
-            NetServiceType::ChangzhouUnion => "常州联通",
-        }
-    }
 
-    pub fn to_service(self: &Self) -> &str {
-        match self {
-            NetServiceType::CampusNet => "_service_0",
-            NetServiceType::NanjingMobile => "_service_1",
-            NetServiceType::ChangzhouTelecom => "_service_2",
-            NetServiceType::ChangzhouUnion => "_service_3"
-        }
-    }
 
-    pub fn get_service(opt: &str) -> Result<Self> {
-        match opt {
-            "校园网" => Ok(NetServiceType::CampusNet),
-            "南京移动" => Ok(NetServiceType::NanjingMobile),
-            "常州电信" => Ok(NetServiceType::ChangzhouTelecom),
-            "常州联通" => Ok(NetServiceType::ChangzhouUnion),
-            _ => Err(anyhow::anyhow!("未知的登录服务")),
-        }
-    }
-}
+
+

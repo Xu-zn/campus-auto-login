@@ -30,6 +30,12 @@ pub struct DownloadArgs {
     /// 解压后是否删除压缩包
     #[arg(short, long, default_value = "false")]
     pub delete: bool,
+    /// 仅下载 Chrome 浏览器
+    #[arg(long)]
+    pub chrome: bool,
+    /// 仅下载 ChromeDriver
+    #[arg(long)]
+    pub driver: bool,
 }
 
 /// 配置管理参数

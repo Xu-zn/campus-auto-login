@@ -1,5 +1,5 @@
 [package]
-name = "auto-login-common"
+name = "campus-core"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,5 +7,10 @@ edition = "2024"
 serde = {workspace = true}
 toml = {version = "0.9.5"}
 anyhow = { workspace = true }
+thiserror = {workspace = true}
 tokio = { workspace = true, features = ["net", "time"]}
 reqwest ={ workspace = true}
+fs4 = {workspace = true}
+
+[target.'cfg(windows)'.dependencies]
+ipmb = {workspace = true}
